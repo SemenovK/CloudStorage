@@ -4,6 +4,7 @@ package filesystem;
 import objects.FileData;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -13,7 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class FileNavigator {
+public class FileNavigator implements Serializable {
 
     final Path startingPoint;
     private Path currentFolder;

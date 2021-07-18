@@ -11,7 +11,6 @@ import io.netty.handler.codec.serialization.ObjectDecoder;
 import io.netty.handler.codec.serialization.ObjectEncoder;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.Map;
 import java.util.Scanner;
 
 @Slf4j
@@ -58,9 +57,9 @@ public class Server {
                             @Override
                             protected void initChannel(SocketChannel socketChannel) throws Exception {
                                 ChannelPipeline channelPipeline = socketChannel.pipeline();
-                                channelPipeline.addLast(new ObjectEncoder());
                                 channelPipeline.addLast(new ObjectDecoder(ClassResolvers.cacheDisabled(null)));
-                                channelPipeline.addLast(new InboundHandler());
+                                channelPipeline.addLast(new ObjectEncoder());
+                                channelPipeline.addLast(new ServerConnectionHandler());
 
                             }
                         });

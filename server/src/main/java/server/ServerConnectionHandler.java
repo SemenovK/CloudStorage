@@ -1,25 +1,19 @@
 package server;
 
 import constants.Commands;
+import filesystem.FileInfo;
 import filesystem.FileNavigator;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import lombok.extern.slf4j.Slf4j;
-import objects.FileList;
-import objects.NetworkAnswer;
-import objects.NetworkMessage;
-import objects.UserData;
+import objects.*;
 
 
 import java.nio.file.Paths;
+import java.util.List;
 
 @Slf4j
-public class InboundHandler extends ChannelInboundHandlerAdapter {
-    @Override
-    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        log.info("Client disconnected");
-    }
-
+public class ServerConnectionHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
 
@@ -27,7 +21,6 @@ public class InboundHandler extends ChannelInboundHandlerAdapter {
         NetworkMessage nm = (NetworkMessage) msg;
         messageDispatch(nm, ctx);
     }
-
 
     private void messageDispatch(NetworkMessage nm, ChannelHandlerContext ctx) {
 
@@ -42,22 +35,18 @@ public class InboundHandler extends ChannelInboundHandlerAdapter {
             ctx.writeAndFlush(answer);
 
         } else if (nm.getMessagePurpose() == Commands.GET_FILE_LIST) {
-            System.out.println("Wanted file list");
+
             try {
                 FileNavigator fn = new FileNavigator(Paths.get("C:", "TMP").toUri());
-                FileList fl = new FileList(fn.getFilesListFromCurrent());
-
-                NetworkAnswer<FileList> na = new NetworkAnswer<>();
-                na.setQuestionMessageType(nm.getMessagePurpose());
-                na.setAnswer(fl);
-                ctx.writeAndFlush(na);
-
-                System.out.println(na);
-
-                NetworkAnswer answer = new NetworkAnswer();
-                answer.setQuestionMessageType(nm.getMessagePurpose());
-                ctx.writeAndFlush(answer);
-
+                List<FileInfo> fileInfo = fn.getFilesListFromCurrent();
+                NetworkAnswer na = new NetworkAnswer<FileData>(fileInfo.size());
+                int partnum = 0;
+                for (FileInfo f : fileInfo) {
+                    na.setQuestionMessageType(nm.getMessagePurpose());
+                    na.setAnswer(new FileData(f.getFileName(), f.getFileSize(), f.isFolder()));
+                    na.setCurrentPart(partnum++);
+                    ctx.writeAndFlush(na);
+                }
 
             } catch (Exception e) {
                 e.printStackTrace();

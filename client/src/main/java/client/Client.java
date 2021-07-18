@@ -12,21 +12,23 @@ import io.netty.handler.codec.serialization.ObjectEncoder;
 import lombok.extern.slf4j.Slf4j;
 import objects.NetworkMessage;
 
-import java.util.concurrent.Callable;
-
 @Slf4j
 public class Client {
 
 
     public SocketChannel mysocketChannel;
     private EventLoopGroup group;
-
+    ClientConnectionHandler handler;
     protected SocketChannel getMysocketChannel() {
         return mysocketChannel;
     }
 
-    public Client() {
+    public ClientConnectionHandler getHandler() {
+        return handler;
+    }
 
+    public Client() {
+        handler = new ClientConnectionHandler();
         Thread thread = new Thread(() -> {
             group = new NioEventLoopGroup();
             try {
@@ -35,12 +37,24 @@ public class Client {
                         .channel(NioSocketChannel.class)
                         .handler(new ChannelInitializer<SocketChannel>() {
                             @Override
+                            public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+                                cause.printStackTrace();
+                                super.exceptionCaught(ctx, cause);
+                            }
+
+                            @Override
+                            public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+                                System.out.println(ctx.pipeline());
+                                super.channelRead(ctx, msg);
+                            }
+
+                            @Override
                             public void initChannel(SocketChannel socketChannel) {
                                 mysocketChannel = socketChannel;
                                 ChannelPipeline channelPipeline = socketChannel.pipeline();
                                 channelPipeline.addLast(new ObjectEncoder());
                                 channelPipeline.addLast(new ObjectDecoder(ClassResolvers.cacheDisabled(null)));
-                                channelPipeline.addLast(new InboundHandlerClient());
+                                channelPipeline.addLast(handler);
 
                             }
                         })

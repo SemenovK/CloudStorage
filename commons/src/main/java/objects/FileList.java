@@ -3,9 +3,11 @@ package objects;
 import filesystem.FileInfo;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
-public class FileList extends NetworkAnswer implements Serializable {
+public class FileList implements Serializable {
     List<FileInfo> filesList;
 
     @Override
@@ -16,8 +18,9 @@ public class FileList extends NetworkAnswer implements Serializable {
     }
 
     public FileList(List<FileInfo> list) {
-        super();
-        this.filesList = list;
+        filesList = new ArrayList<>();
+        filesList.addAll(list);
+
 
     }
 

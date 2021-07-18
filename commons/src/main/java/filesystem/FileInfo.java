@@ -60,6 +60,9 @@ public class FileInfo implements Serializable {
     public FileType getFileType() {
         return fileType;
     }
+    public boolean isFolder(){
+        return fileType.equals(FileType.DIRECTORY);
+    }
 
     public String getFileName() {
         return fileName;

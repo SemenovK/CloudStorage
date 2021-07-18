@@ -12,7 +12,7 @@
                     <items>
                         <MenuItem fx:id="miConnect" mnemonicParsing="false" onAction="#miConnectClick" text="Connect" />
                         <MenuItem fx:id="miDisconnect" mnemonicParsing="false" onAction="#miDisconnectClick" text="Disconnect" />
-                        <MenuItem mnemonicParsing="false" text="Close" onAction="#exitFrom" />
+                        <MenuItem mnemonicParsing="false" onAction="#exitFrom" text="Close" />
                     </items>
                 </Menu>
                 <Menu mnemonicParsing="false" text="Help">
@@ -47,7 +47,7 @@
                     <children>
                   <VBox alignment="CENTER" prefWidth="100.0" spacing="10.0">
                      <children>
-                        <Button mnemonicParsing="false" text="Button" fx:id="button" onAction="#testButtonClick" />
+                        <Button fx:id="button" mnemonicParsing="false" onAction="#testButtonClick" text="Get files" />
                               <Button fx:id="btAddFolderToCloud" mnemonicParsing="false" text="&gt;&gt;" />
                               <Button fx:id="removeFolderFromCloud" mnemonicParsing="false" text="&lt;&lt;" />
                      </children>

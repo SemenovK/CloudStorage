@@ -21,6 +21,7 @@ import javafx.scene.input.MouseEvent;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
+import objects.FileData;
 import objects.NetworkMessage;
 import objects.UserData;
 
@@ -77,6 +78,8 @@ public class MainFormController implements Initializable {
     private MenuItem miDisconnect;
     @FXML
     private ListView<String> eventsList;
+    @FXML
+    private TableView<FileData> filesOnServerTable;
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
@@ -162,6 +165,37 @@ public class MainFormController implements Initializable {
         lastModifyDateColumn.setPrefWidth(150);
         filesTable.getColumns().addAll(fileTypeColumn, fileNameColumn, fileSizeColumn, lastModifyDateColumn);
 
+        TableColumn<FileData, String> fileNameServerColumn = new TableColumn<>("Name");
+        fileNameServerColumn.setCellValueFactory(param -> new SimpleStringProperty(param.getValue().getFileName()));
+        fileNameServerColumn.setPrefWidth(150);
+
+
+        TableColumn<FileData, Long> fileSizeServerColumn = new TableColumn<>("Size");
+        fileSizeServerColumn.setCellValueFactory(param -> new SimpleObjectProperty(param.getValue().getFileSize()));
+        fileSizeServerColumn.setPrefWidth(30);
+
+
+        fileSizeServerColumn.setCellFactory(column -> new TableCell<FileData, Long>() {
+            @Override
+            protected void updateItem(Long item, boolean empty) {
+                super.updateItem(item, empty);
+                if (item == null || empty) {
+                    setText(null);
+                    setStyle("");
+                } else {
+                    String str = item.toString();
+
+                    if (item == -1L) {
+                        str = "[DIR]";
+                    } else {
+                        str = String.format("%,d bytes", item);
+                    }
+                    setText(str);
+                }
+
+            }
+        });
+        filesOnServerTable.getColumns().addAll(fileNameServerColumn, fileSizeServerColumn);
         updateFileList(Paths.get(System.getProperty("user.home")).toAbsolutePath().normalize());
 
     }
@@ -243,6 +277,9 @@ public class MainFormController implements Initializable {
 
     public void testButtonClick(ActionEvent actionEvent) {
         client.SendObject(new NetworkMessage(Commands.GET_FILE_LIST));
+        filesOnServerTable.getItems().clear();
+        client.getHandler().setFileListContainer(filesOnServerTable);
+
     }
 
     private void connectAndAuth() {
