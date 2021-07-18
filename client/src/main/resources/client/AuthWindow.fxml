@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+
+<VBox fx:controller="client.AuthWindowController" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="161.0" prefWidth="355.0" spacing="5.0" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1">
+   <children>
+      <Label text="Login" />
+      <TextField fx:id="tfLogin"/>
+      <Label text="Password" />
+      <PasswordField fx:id="tfPassword" />
+      <HBox alignment="CENTER_RIGHT" prefHeight="45.0" prefWidth="600.0" spacing="15.0">
+         <children>
+            <Button mnemonicParsing="false" text="Log in" onAction="#onOk" fx:id="okButton"/>
+            <Button mnemonicParsing="false" text="Cancel" onAction="#onCancel" fx:id="cancelButton"/>
+         </children>
+         <opaqueInsets>
+            <Insets />
+         </opaqueInsets>
+         <VBox.margin>
+            <Insets bottom="2.0" left="2.0" right="2.0" top="2.0" />
+         </VBox.margin>
+         <padding>
+            <Insets bottom="15.0" left="15.0" right="15.0" top="15.0" />
+         </padding>
+      </HBox>
+   </children>
+   <padding>
+      <Insets bottom="2.0" left="2.0" right="2.0" top="2.0" />
+   </padding>
+   <opaqueInsets>
+      <Insets />
+   </opaqueInsets>
+</VBox>
