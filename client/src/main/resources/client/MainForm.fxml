@@ -27,52 +27,62 @@
             <children>
                 <VBox alignment="TOP_CENTER" maxHeight="1.7976931348623157E308" minWidth="500.0" prefWidth="500.0">
                     <children>
-                  <HBox maxHeight="35.0" prefHeight="30.0" spacing="10.0">
-                     <children>
-                        <ComboBox fx:id="diskComboBox" minWidth="70.0" prefWidth="70.0" />
-                        <TextField fx:id="currentPath" HBox.hgrow="ALWAYS" />
-                        <Button fx:id="btGotoPath" mnemonicParsing="false" onAction="#goToPathClick" text="Go" />
-                        <Button fx:id="btMoveUp" mnemonicParsing="false" onAction="#moveupClick" text="Up" />
-                     </children>
-                     <padding>
-                        <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
-                     </padding>
-                  </HBox>
+                        <HBox maxHeight="35.0" prefHeight="30.0" spacing="10.0">
+                            <children>
+                                <ComboBox fx:id="diskComboBox" minWidth="70.0" prefWidth="70.0" />
+                                <TextField fx:id="currentPath" HBox.hgrow="ALWAYS" />
+                                <Button fx:id="btGotoPath" mnemonicParsing="false" onAction="#goToPathClick" text="Go" />
+                                <Button fx:id="btMoveUp" mnemonicParsing="false" onAction="#moveUpClick" text="Up" />
+                            </children>
+                            <padding>
+                                <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+                            </padding>
+                        </HBox>
                         <TableView fx:id="filesTable" maxHeight="1.7976931348623157E308" onKeyPressed="#onFilesTableKeyPress" onMouseClicked="#onFilesTableClick" prefHeight="500.0" prefWidth="500.0" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS">
 
                         </TableView>
                     </children>
                 </VBox>
-                <Pane maxHeight="1.7976931348623157E308" maxWidth="100.0" minWidth="95.0" prefWidth="96.0" HBox.hgrow="ALWAYS">
+                <Pane fx:id="buttonsPane" maxHeight="1.7976931348623157E308" maxWidth="160.0" minWidth="160" prefWidth="160" HBox.hgrow="ALWAYS">
                     <children>
-                  <VBox alignment="CENTER" prefWidth="100.0" spacing="10.0">
-                     <children>
-                        <Button fx:id="button" mnemonicParsing="false" onAction="#testButtonClick" text="Get files" />
-                              <Button fx:id="btAddFolderToCloud" mnemonicParsing="false" text="&gt;&gt;" />
-                              <Button fx:id="removeFolderFromCloud" mnemonicParsing="false" text="&lt;&lt;" />
-                     </children>
-                     <padding>
-                        <Insets bottom="5.0" left="5.0" right="5.0" top="200.0" />
-                     </padding>
-                  </VBox>
+                        <VBox alignment="CENTER" prefWidth="160.0" spacing="10.0">
+                            <children>
+                                <Button fx:id="button" mnemonicParsing="false" onAction="#refreshButtonClick" prefWidth="120" text="Refresh" />
+                                <Button fx:id="btAddToCloud" mnemonicParsing="false" onAction="#addToCloud" prefWidth="120" text="Copy to Cloud" />
+                                <Button fx:id="btRemoveFromCloud" mnemonicParsing="false" prefWidth="120" text="Copy from Cloud" />
+                            </children>
+                            <padding>
+                                <Insets bottom="5.0" left="5.0" right="5.0" top="200.0" />
+                            </padding>
+                        </VBox>
 
                     </children>
                     <padding>
                         <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
                     </padding>
                 </Pane>
-                <TableView fx:id="filesOnServerTable" maxHeight="1.7976931348623157E308" prefHeight="461.0" prefWidth="300.0" HBox.hgrow="ALWAYS" onMouseClicked="#onFilesServerTableClick">
+                <TableView fx:id="filesOnServerTable" maxHeight="1.7976931348623157E308" onMouseClicked="#onFilesServerTableClick" prefHeight="461.0" prefWidth="300.0" HBox.hgrow="ALWAYS">
+               <contextMenu>
+                  <ContextMenu>
+                    <items>
+                      <MenuItem mnemonicParsing="false" text="Create New Folder" />
+                        <MenuItem mnemonicParsing="false" text="Get from Cloud" />
+                        <MenuItem mnemonicParsing="false" text="Share to" />
+                        <MenuItem mnemonicParsing="false" text="Delete" />
 
-                </TableView>
+                    </items>
+                  </ContextMenu>
+               </contextMenu></TableView>
             </children>
         </HBox>
 
         <HBox alignment="BOTTOM_CENTER" fillHeight="false" maxHeight="139.0" minHeight="31.0" prefHeight="139.0" prefWidth="596.0" VBox.vgrow="NEVER">
-         <VBox.margin>
-            <Insets bottom="4.0" left="2.0" right="2.0" top="2.0" />
-         </VBox.margin>
-         <children>
-            <ListView fx:id="eventsList" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="200.0" HBox.hgrow="ALWAYS" />
-         </children></HBox>
+            <VBox.margin>
+                <Insets bottom="4.0" left="2.0" right="2.0" top="2.0" />
+            </VBox.margin>
+            <children>
+                <ListView fx:id="eventsList" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="200.0" HBox.hgrow="ALWAYS" />
+            </children>
+        </HBox>
     </children>
 </VBox>

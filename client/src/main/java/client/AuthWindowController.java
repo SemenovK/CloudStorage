@@ -1,12 +1,11 @@
 package client;
 
-import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
-import objects.UserData;
+import network.UserData;
 
 public class AuthWindowController<T> {
 
@@ -31,7 +30,7 @@ public class AuthWindowController<T> {
     }
 
     public void onOk(ActionEvent actionEvent) {
-        collectedData = new UserData(tfLogin.getText().trim(),tfPassword.getText().trim());
+        collectedData = new UserData(tfLogin.getText().trim(), tfPassword.getText().trim());
         Stage stage = (Stage) okButton.getScene().getWindow();
         stage.close();
     }

@@ -18,12 +18,14 @@ import javafx.scene.control.cell.ComboBoxListCell;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.Pane;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
+import network.FileContent;
 import objects.FileData;
-import objects.NetworkMessage;
-import objects.UserData;
+import network.NetworkMessage;
+import network.UserData;
 
 import java.io.File;
 import java.io.IOException;
@@ -41,6 +43,8 @@ import java.util.stream.Collectors;
 
 public class MainFormController implements Initializable {
 
+    private Thread monitorthread;
+
     public EventHandler<WindowEvent> getCloseWindowEvent() {
         return closeWindowEvent;
     }
@@ -48,12 +52,11 @@ public class MainFormController implements Initializable {
     private EventHandler<WindowEvent> closeWindowEvent = new EventHandler<WindowEvent>() {
         @Override
         public void handle(WindowEvent windowEvent) {
-            if(WindowEvent.WINDOW_CLOSE_REQUEST.equals(windowEvent.getEventType())){
-                if(client!=null){
+            if (WindowEvent.WINDOW_CLOSE_REQUEST.equals(windowEvent.getEventType())) {
+                if (client != null) {
                     client.close();
                 }
             }
-
 
         }
     };
@@ -80,10 +83,12 @@ public class MainFormController implements Initializable {
     private ListView<String> eventsList;
     @FXML
     private TableView<FileData> filesOnServerTable;
+    @FXML
+    private Pane buttonsPane;
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
-        miDisconnect.setDisable(true);
+        setConnectedMode(false);
         List<File> drives = new ArrayList<>();
         for (Path p : FileSystems.getDefault().getRootDirectories()) {
             drives.add(p.toFile());
@@ -106,7 +111,6 @@ public class MainFormController implements Initializable {
             protected void updateItem(DiskInfo item, boolean empty) {
                 super.updateItem(item, empty);
                 if (item != null || !empty) {
-                    //setText(item.getDiskName());
                     setText(item.getDiskAbsPath());
                 }
 
@@ -172,7 +176,7 @@ public class MainFormController implements Initializable {
 
         TableColumn<FileData, Long> fileSizeServerColumn = new TableColumn<>("Size");
         fileSizeServerColumn.setCellValueFactory(param -> new SimpleObjectProperty(param.getValue().getFileSize()));
-        fileSizeServerColumn.setPrefWidth(30);
+        fileSizeServerColumn.setPrefWidth(80);
 
 
         fileSizeServerColumn.setCellFactory(column -> new TableCell<FileData, Long>() {
@@ -185,8 +189,10 @@ public class MainFormController implements Initializable {
                 } else {
                     String str = item.toString();
 
-                    if (item == -1L) {
+                    if (item == -1L && !str.equals("..")) {
                         str = "[DIR]";
+                    } else if (item == -2L) {
+                        str = "[Move up]";
                     } else {
                         str = String.format("%,d bytes", item);
                     }
@@ -233,7 +239,7 @@ public class MainFormController implements Initializable {
         updateFileList(p.normalize().toAbsolutePath());
     }
 
-    public void moveupClick(ActionEvent actionEvent) {
+    public void moveUpClick(ActionEvent actionEvent) {
         Path path = Paths.get(currentPath.getText()).getParent();
         if (path != null)
             updateFileList(path);
@@ -255,35 +261,36 @@ public class MainFormController implements Initializable {
                 updateFileList(fi.getFilePath());
             }
         } else if (keyEvent.getCode() == KeyCode.BACK_SPACE) {
-            moveupClick(new ActionEvent());
+            moveUpClick(new ActionEvent());
         }
     }
 
     public void miConnectClick(ActionEvent actionEvent) {
         connectAndAuth();
-        miConnect.setDisable(true);
-        miDisconnect.setDisable(false);
-        eventsList.getItems().add("Connected.");
-
-
     }
 
     public void miDisconnectClick(ActionEvent actionEvent) {
-        client.getMysocketChannel().close();
-        miConnect.setDisable(false);
-        miDisconnect.setDisable(true);
-        eventsList.getItems().add("Disconected.");
+        disconnect();
+
     }
 
-    public void testButtonClick(ActionEvent actionEvent) {
+    public synchronized void refreshButtonClick(ActionEvent actionEvent) {
+        if (client == null) {
+            setConnectedMode(false);
+            return;
+        }
+        setConnectedMode(client.isConnected());
+        Path path = Paths.get(currentPath.getText());
+        if (path != null)
+            updateFileList(path);
         client.SendObject(new NetworkMessage(Commands.GET_FILE_LIST));
         filesOnServerTable.getItems().clear();
         client.getHandler().setFileListContainer(filesOnServerTable);
 
+
     }
 
     private void connectAndAuth() {
-        client = new Client();
         authorisationWindowShow();
     }
 
@@ -292,20 +299,62 @@ public class MainFormController implements Initializable {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("./AuthWindow.fxml"));
             Parent root = loader.load();
             Stage stage = new Stage();
-            //    stage.setOpacity(1);
             stage.setTitle("Log in");
             stage.setScene(new Scene(root, 350, 160));
             stage.initModality(Modality.WINDOW_MODAL);
             AuthWindowController loginWindow = loader.getController();
             loginWindow.setParentController(this);
+            client = new Client();
+            stage.initModality(Modality.APPLICATION_MODAL);
             stage.showAndWait();
+
             UserData ud = loginWindow.getCollectedData();
+            if (ud == null) {
+                disconnect();
+                return;
+            }
+
             if (ud != null && client != null) {
-                client.getMysocketChannel().writeAndFlush(ud);
+                client.getMySocketChannel().writeAndFlush(ud);
+                setConnectedMode(true);
+                addEventToList("Connected");
+
+                Platform.runLater(() -> {
+                    while (true) {
+                        try {
+                            Thread.sleep(100);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                        if (client != null) {
+                            if (client.isConnected()) {
+                                break;
+                            }
+                        }
+                    }
+                    refreshButtonClick(new ActionEvent());
+                });
+
             }
 
         } catch (IOException ex) {
             ex.printStackTrace();
+        }
+
+    }
+
+    private void disconnect() {
+        setConnectedMode(false);
+        if (client != null) {
+            if (client.isConnected()) {
+                client.setConnected(false);
+                addEventToList("Disconnected");
+            }
+
+            client.close();
+            client = null;
+
+
         }
 
     }
@@ -325,5 +374,40 @@ public class MainFormController implements Initializable {
                 client.getHandler().setFileListContainer(filesOnServerTable);
             }
         }
+    }
+
+    public void addToCloud(ActionEvent actionEvent) {
+        Platform.runLater(() -> {
+            List<FileInfo> fi = filesTable.getSelectionModel().getSelectedItems();
+
+            for (FileInfo f : fi) {
+                if (!f.isFolder()) {
+                    FileContent fc = new FileContent(f.getFileName(), (int) f.getFileSize());
+                    try {
+                        fc.setFileContent(Files.readAllBytes(f.getFilePath()));
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    client.SendObject(fc);
+                    addEventToList("File " + f.getFileName() + " has been sent to the Cloud.");
+                } else {
+                    addEventToList("Unable to send folder " + f.getFileName() + " to the Cloud.");
+                }
+
+            }
+        });
+
+    }
+
+    private void setConnectedMode(boolean mode) {
+        buttonsPane.setDisable(!mode);
+        miDisconnect.setDisable(!mode);
+        miConnect.setDisable(mode);
+    }
+
+    private void addEventToList(String message) {
+        eventsList.getItems().add(message);
+        eventsList.scrollTo(eventsList.getItems().size());
+
     }
 }

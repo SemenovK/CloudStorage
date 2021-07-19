@@ -16,9 +16,12 @@ import java.util.stream.Collectors;
 
 public class FileNavigator implements Serializable {
 
-    final Path startingPoint;
+    final private Path startingPoint;
     private Path currentFolder;
-
+    public FileNavigator() {
+        startingPoint = Paths.get("C:","TMP");
+        currentFolder = startingPoint;
+    }
     public FileNavigator(URI initFolder) {
         startingPoint = Paths.get(initFolder);
         currentFolder = startingPoint;
@@ -32,15 +35,29 @@ public class FileNavigator implements Serializable {
         return fileInfoList;
     }
 
+    public void goInto(String foldername){
+        currentFolder = Paths.get(currentFolder.toString(), foldername);
+    }
+    public void goUp(){
+        System.out.println(currentFolder);
+        System.out.println(startingPoint);
+        if(currentFolder.equals(startingPoint))
+            return;
 
-    public byte[] getFileContentFromCurrent(String fileName) throws IOException {
-        Path filePath = Paths.get(currentFolder.toString(), fileName);
-        System.out.println(filePath);
-        if (!filePath.toFile().exists()) {
-            return ("File " + fileName + " doesn't exist.\n").getBytes(StandardCharsets.UTF_8);
-        } else {
-            return Files.readAllBytes(filePath);
+        currentFolder = currentFolder.getParent();
+    }
+
+    public boolean isOnTop(){
+        return startingPoint.equals(currentFolder);
+    }
+
+
+    public void createAndWriteToFileOnCurrent(String fileName, byte[] fileContent) {
+        Path newFile =  Paths.get(currentFolder.toString(), fileName);
+        try {
+            Files.write(newFile, fileContent);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-
     }
 }

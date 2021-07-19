@@ -1,6 +1,7 @@
 package server;
 
 
+import filesystem.FileNavigator;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -11,16 +12,25 @@ import io.netty.handler.codec.serialization.ObjectDecoder;
 import io.netty.handler.codec.serialization.ObjectEncoder;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Scanner;
+import java.util.UUID;
 
 @Slf4j
 public class Server {
     public static Scanner scanner = new Scanner(System.in);
     private DBAuthService dbAuthService;
+    private Map<UUID, FileNavigator> usersPlacement;
+
     private EventLoopGroup auth;
     private EventLoopGroup worker;
+    private ServerConnectionHandler serverConnectionHandler;
 
     public Server(){
+        usersPlacement = new HashMap<>();
+        serverConnectionHandler = new ServerConnectionHandler();
+        serverConnectionHandler.setUsersPlacement(usersPlacement);
 
     }
 
@@ -59,7 +69,7 @@ public class Server {
                                 ChannelPipeline channelPipeline = socketChannel.pipeline();
                                 channelPipeline.addLast(new ObjectDecoder(ClassResolvers.cacheDisabled(null)));
                                 channelPipeline.addLast(new ObjectEncoder());
-                                channelPipeline.addLast(new ServerConnectionHandler());
+                                channelPipeline.addLast(serverConnectionHandler);
 
                             }
                         });
@@ -68,6 +78,7 @@ public class Server {
                 dbAuthService = new DBAuthService();
                 dbAuthService.start();
                 log.info("Connected to database");
+
 
                 channelFuture.channel().closeFuture().sync();
             } catch (Exception E){

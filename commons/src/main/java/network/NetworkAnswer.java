@@ -1,8 +1,6 @@
-package objects;
+package network;
 
 import constants.Commands;
-
-import java.io.Serializable;
 
 public class NetworkAnswer<T> extends NetworkMessage {
     private Commands questionMessageType;
@@ -35,6 +33,16 @@ public class NetworkAnswer<T> extends NetworkMessage {
 
     public Commands getQuestionMessageType() {
         return questionMessageType;
+    }
+
+    @Override
+    public String toString() {
+        return "NetworkAnswer{" +
+                "questionMessageType=" + questionMessageType +
+                ", answer=" + answer +
+                ", totalParts=" + totalParts +
+                ", currentPart=" + currentPart +
+                '}';
     }
 
     public void setQuestionMessageType(Commands questionMessageType) {

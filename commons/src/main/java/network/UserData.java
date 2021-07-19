@@ -1,4 +1,4 @@
-package objects;
+package network;
 
 import constants.Commands;
 

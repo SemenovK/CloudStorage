@@ -10,17 +10,35 @@ import io.netty.handler.codec.serialization.ObjectDecoder;
 import io.netty.handler.codec.serialization.ObjectEncoder;
 
 import lombok.extern.slf4j.Slf4j;
-import objects.NetworkMessage;
+import network.NetworkMessage;
+
+import java.util.UUID;
 
 @Slf4j
 public class Client {
 
 
-    public SocketChannel mysocketChannel;
+    private SocketChannel mySocketChannel;
     private EventLoopGroup group;
-    ClientConnectionHandler handler;
-    protected SocketChannel getMysocketChannel() {
-        return mysocketChannel;
+    private ClientConnectionHandler handler;
+    private UUID userToken;
+    private boolean connected;
+
+    public boolean isConnected() {
+        return connected;
+    }
+
+
+    public UUID getUserToken() {
+        return userToken;
+    }
+
+    public void setUserToken(UUID userToken) {
+        this.userToken = userToken;
+    }
+
+    protected SocketChannel getMySocketChannel() {
+        return mySocketChannel;
     }
 
     public ClientConnectionHandler getHandler() {
@@ -28,7 +46,8 @@ public class Client {
     }
 
     public Client() {
-        handler = new ClientConnectionHandler();
+        handler = new ClientConnectionHandler(this);
+        connected = false;
         Thread thread = new Thread(() -> {
             group = new NioEventLoopGroup();
             try {
@@ -37,20 +56,8 @@ public class Client {
                         .channel(NioSocketChannel.class)
                         .handler(new ChannelInitializer<SocketChannel>() {
                             @Override
-                            public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-                                cause.printStackTrace();
-                                super.exceptionCaught(ctx, cause);
-                            }
-
-                            @Override
-                            public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-                                System.out.println(ctx.pipeline());
-                                super.channelRead(ctx, msg);
-                            }
-
-                            @Override
                             public void initChannel(SocketChannel socketChannel) {
-                                mysocketChannel = socketChannel;
+                                mySocketChannel = socketChannel;
                                 ChannelPipeline channelPipeline = socketChannel.pipeline();
                                 channelPipeline.addLast(new ObjectEncoder());
                                 channelPipeline.addLast(new ObjectDecoder(ClassResolvers.cacheDisabled(null)));
@@ -64,25 +71,34 @@ public class Client {
                         .closeFuture()
                         .sync();
 
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+            } catch (Exception e) {
+                log.error("Connection fault:" + e.getLocalizedMessage());
             } finally {
                 group.shutdownGracefully();
             }
         });
 
         thread.setDaemon(true);
+
         thread.start();
 
     }
 
-    public void SendObject(NetworkMessage nm){
-        mysocketChannel.writeAndFlush(nm);
+    public void SendObject(NetworkMessage nm) {
+        nm.setUid(this.userToken);
+        System.out.println(this.userToken);
+        mySocketChannel.writeAndFlush(nm);
     }
 
-    public void close(){
-        group.shutdownGracefully();
-        mysocketChannel.close();
+    public void close() {
+        if (group != null)
+            group.shutdownGracefully();
+        if (mySocketChannel != null)
+            mySocketChannel.close();
+    }
+
+    public void setConnected(boolean b) {
+        connected = b;
     }
 }
 
