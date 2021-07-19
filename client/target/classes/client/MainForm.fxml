@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox alignment="TOP_CENTER" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="571.0" prefWidth="883.0" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="client.MainFormController">
+    <children>
+        <MenuBar>
+            <menus>
+                <Menu mnemonicParsing="false" text="File">
+                    <items>
+                        <MenuItem fx:id="miConnect" mnemonicParsing="false" onAction="#miConnectClick" text="Connect" />
+                        <MenuItem fx:id="miDisconnect" mnemonicParsing="false" onAction="#miDisconnectClick" text="Disconnect" />
+                        <MenuItem mnemonicParsing="false" onAction="#exitFrom" text="Close" />
+                    </items>
+                </Menu>
+                <Menu mnemonicParsing="false" text="Help">
+                    <items>
+                        <MenuItem mnemonicParsing="false" text="About" />
+                    </items>
+                </Menu>
+            </menus>
+        </MenuBar>
+
+        <HBox alignment="TOP_CENTER" maxHeight="1.7976931348623157E308" prefHeight="521.0" prefWidth="600.0" VBox.vgrow="ALWAYS">
+            <children>
+                <VBox alignment="TOP_CENTER" maxHeight="1.7976931348623157E308" minWidth="500.0" prefWidth="500.0">
+                    <children>
+                  <HBox maxHeight="35.0" prefHeight="30.0" spacing="10.0">
+                     <children>
+                        <ComboBox fx:id="diskComboBox" minWidth="70.0" prefWidth="70.0" />
+                        <TextField fx:id="currentPath" HBox.hgrow="ALWAYS" />
+                        <Button fx:id="btGotoPath" mnemonicParsing="false" onAction="#goToPathClick" text="Go" />
+                        <Button fx:id="btMoveUp" mnemonicParsing="false" onAction="#moveupClick" text="Up" />
+                     </children>
+                     <padding>
+                        <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+                     </padding>
+                  </HBox>
+                        <TableView fx:id="filesTable" maxHeight="1.7976931348623157E308" onKeyPressed="#onFilesTableKeyPress" onMouseClicked="#onFilesTableClick" prefHeight="500.0" prefWidth="500.0" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS">
+
+                        </TableView>
+                    </children>
+                </VBox>
+                <Pane maxHeight="1.7976931348623157E308" maxWidth="100.0" minWidth="95.0" prefWidth="96.0" HBox.hgrow="ALWAYS">
+                    <children>
+                  <VBox alignment="CENTER" prefWidth="100.0" spacing="10.0">
+                     <children>
+                        <Button fx:id="button" mnemonicParsing="false" onAction="#testButtonClick" text="Get files" />
+                              <Button fx:id="btAddFolderToCloud" mnemonicParsing="false" text="&gt;&gt;" />
+                              <Button fx:id="removeFolderFromCloud" mnemonicParsing="false" text="&lt;&lt;" />
+                     </children>
+                     <padding>
+                        <Insets bottom="5.0" left="5.0" right="5.0" top="200.0" />
+                     </padding>
+                  </VBox>
+
+                    </children>
+                    <padding>
+                        <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+                    </padding>
+                </Pane>
+                <TableView fx:id="filesOnServerTable" maxHeight="1.7976931348623157E308" prefHeight="461.0" prefWidth="300.0" HBox.hgrow="ALWAYS" onMouseClicked="#onFilesServerTableClick">
+
+                </TableView>
+            </children>
+        </HBox>
+
+        <HBox alignment="BOTTOM_CENTER" fillHeight="false" maxHeight="139.0" minHeight="31.0" prefHeight="139.0" prefWidth="596.0" VBox.vgrow="NEVER">
+         <VBox.margin>
+            <Insets bottom="4.0" left="2.0" right="2.0" top="2.0" />
+         </VBox.margin>
+         <children>
+            <ListView fx:id="eventsList" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="200.0" HBox.hgrow="ALWAYS" />
+         </children></HBox>
+    </children>
+</VBox>
