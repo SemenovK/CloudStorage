@@ -22,7 +22,6 @@ public class ClientConnectionHandler extends ChannelInboundHandlerAdapter {
             filesOnServerTable.getItems().add((FileData) answer.getAnswer());
 
         }
-
     }
 
 

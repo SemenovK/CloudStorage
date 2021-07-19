@@ -313,4 +313,17 @@ public class MainFormController implements Initializable {
     public void exitFrom(ActionEvent actionEvent) {
         Platform.exit();
     }
+
+    public void onFilesServerTableClick(MouseEvent mouseEvent) {
+        if (mouseEvent.getClickCount() == 2) {
+            FileData fd = filesOnServerTable.getSelectionModel().getSelectedItem();
+            if (fd.isFolder()) {
+                NetworkMessage nm = new NetworkMessage(Commands.GET_FILE_LIST);
+                nm.setExtraInfo(fd.getFileName());
+                client.SendObject(nm);
+                filesOnServerTable.getItems().clear();
+                client.getHandler().setFileListContainer(filesOnServerTable);
+            }
+        }
+    }
 }

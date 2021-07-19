@@ -16,6 +16,10 @@ public class NetworkMessage implements Serializable {
         return extraInfo;
     }
 
+    public void setExtraInfo(String extraInfo) {
+        this.extraInfo = extraInfo;
+    }
+
     public NetworkMessage(Commands command){
         messagePurpose = command;
     }

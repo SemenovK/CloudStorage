@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import objects.*;
 
 
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
@@ -37,7 +38,17 @@ public class ServerConnectionHandler extends ChannelInboundHandlerAdapter {
         } else if (nm.getMessagePurpose() == Commands.GET_FILE_LIST) {
 
             try {
-                FileNavigator fn = new FileNavigator(Paths.get("C:", "TMP").toUri());
+                String s = nm.getExtraInfo();
+                Path p;
+                if(s == "" || s==null){
+                    p = Paths.get("C:", "TMP");
+                } else {
+                    p = Paths.get("C:", "TMP", s);
+                }
+
+
+                System.out.println(p);
+                FileNavigator fn = new FileNavigator(p.toUri());
                 List<FileInfo> fileInfo = fn.getFilesListFromCurrent();
                 NetworkAnswer na = new NetworkAnswer<FileData>(fileInfo.size());
                 int partnum = 0;
