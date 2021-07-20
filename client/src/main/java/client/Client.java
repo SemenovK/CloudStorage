@@ -84,7 +84,7 @@ public class Client {
 
     }
 
-    public void SendObject(NetworkMessage nm) {
+    public void sendObject(NetworkMessage nm) {
         nm.setUid(this.userToken);
         System.out.println(this.userToken);
         mySocketChannel.writeAndFlush(nm);

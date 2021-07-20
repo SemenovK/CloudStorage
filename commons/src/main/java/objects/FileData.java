@@ -3,6 +3,7 @@ package objects;
 import constants.Commands;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 public class FileData implements Serializable {
 
@@ -12,6 +13,19 @@ public class FileData implements Serializable {
 
     public String getFileName() {
         return fileName;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        FileData fileData = (FileData) o;
+        return fileSize == fileData.fileSize && isFolder == fileData.isFolder && fileName.equals(fileData.fileName);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(fileName, fileSize, isFolder);
     }
 
     @Override

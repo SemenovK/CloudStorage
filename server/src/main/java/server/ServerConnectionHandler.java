@@ -23,11 +23,17 @@ import java.util.UUID;
 @ChannelHandler.Sharable
 public class ServerConnectionHandler extends ChannelInboundHandlerAdapter {
 
+
+
+    private Server parentHandler;
+
     private Map<UUID, FileNavigator> usersPlacement;
 
-    public void setUsersPlacement(Map<UUID, FileNavigator> usersPlacement) {
-        this.usersPlacement = usersPlacement;
+    public ServerConnectionHandler(Server parentHandler) {
+        this.parentHandler = parentHandler;
+        this.usersPlacement = parentHandler.getUsersPlacement();
     }
+
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
@@ -57,7 +63,7 @@ public class ServerConnectionHandler extends ChannelInboundHandlerAdapter {
 
             if (usersPlacement != null) {
                 UUID uid = UUID.randomUUID();
-                usersPlacement.put(uid, new FileNavigator());
+                usersPlacement.put(uid, new FileNavigator(uid));
                 answer.setUid(uid);
                 answer.setAnswer(Status.OK);
 
@@ -105,10 +111,13 @@ public class ServerConnectionHandler extends ChannelInboundHandlerAdapter {
 
         } else if (nm.getMessagePurpose() == Commands.FILE_DATA && fn != null) {
             FileContent fc = (FileContent) nm;
-            System.out.println("Need to upload " + fc.getFileName());
             System.out.println(fc);
-            fn.createAndWriteToFileOnCurrent(fc.getFileName(),fc.getFileContent());
+            fn.putFileToQueue(fc.getFileName(),fc.getFileContent());
+            //fn.createAndWriteToFileOnCurrent(fc.getFileName(),fc.getFileContent(),);
 
+        } else if(nm.getMessagePurpose() == Commands.FILE_OVERWRITE && fn != null) {
+            System.out.println(nm);
+            parentHandler.fileWritingDecision(nm.getExtraInfo(),nm.getUid(),nm.getStatus());
         }
     }
 

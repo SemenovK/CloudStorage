@@ -6,6 +6,7 @@ import filesystem.FileInfo;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
+import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
@@ -85,6 +86,8 @@ public class MainFormController implements Initializable {
     private TableView<FileData> filesOnServerTable;
     @FXML
     private Pane buttonsPane;
+    @FXML
+    private TextField tfServerPath;
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
@@ -203,6 +206,7 @@ public class MainFormController implements Initializable {
         });
         filesOnServerTable.getColumns().addAll(fileNameServerColumn, fileSizeServerColumn);
         updateFileList(Paths.get(System.getProperty("user.home")).toAbsolutePath().normalize());
+        tfServerPath.setText("[HOME]");
 
     }
 
@@ -234,17 +238,20 @@ public class MainFormController implements Initializable {
 
     }
 
+    @FXML
     public void goToPathClick(ActionEvent actionEvent) {
         Path p = Paths.get(currentPath.getText());
         updateFileList(p.normalize().toAbsolutePath());
     }
 
+    @FXML
     public void moveUpClick(ActionEvent actionEvent) {
         Path path = Paths.get(currentPath.getText()).getParent();
         if (path != null)
             updateFileList(path);
     }
 
+    @FXML
     public void onFilesTableClick(MouseEvent mouseEvent) {
         if (mouseEvent.getClickCount() == 2) {
             FileInfo fi = filesTable.getSelectionModel().getSelectedItem();
@@ -254,6 +261,7 @@ public class MainFormController implements Initializable {
         }
     }
 
+    @FXML
     public void onFilesTableKeyPress(KeyEvent keyEvent) {
         if (keyEvent.getCode() == KeyCode.ENTER) {
             FileInfo fi = filesTable.getSelectionModel().getSelectedItem();
@@ -265,15 +273,18 @@ public class MainFormController implements Initializable {
         }
     }
 
+    @FXML
     public void miConnectClick(ActionEvent actionEvent) {
         connectAndAuth();
     }
 
+    @FXML
     public void miDisconnectClick(ActionEvent actionEvent) {
         disconnect();
 
     }
 
+    @FXML
     public synchronized void refreshButtonClick(ActionEvent actionEvent) {
         if (client == null) {
             setConnectedMode(false);
@@ -283,7 +294,7 @@ public class MainFormController implements Initializable {
         Path path = Paths.get(currentPath.getText());
         if (path != null)
             updateFileList(path);
-        client.SendObject(new NetworkMessage(Commands.GET_FILE_LIST));
+        client.sendObject(new NetworkMessage(Commands.GET_FILE_LIST));
         filesOnServerTable.getItems().clear();
         client.getHandler().setFileListContainer(filesOnServerTable);
 
@@ -363,19 +374,28 @@ public class MainFormController implements Initializable {
         Platform.exit();
     }
 
+    @FXML
     public void onFilesServerTableClick(MouseEvent mouseEvent) {
         if (mouseEvent.getClickCount() == 2) {
             FileData fd = filesOnServerTable.getSelectionModel().getSelectedItem();
             if (fd.isFolder()) {
                 NetworkMessage nm = new NetworkMessage(Commands.GET_FILE_LIST);
                 nm.setExtraInfo(fd.getFileName());
-                client.SendObject(nm);
+                client.sendObject(nm);
                 filesOnServerTable.getItems().clear();
                 client.getHandler().setFileListContainer(filesOnServerTable);
+
+                if (fd.getFileSize() == -2) {
+                    tfServerPath.setText(Paths.get(tfServerPath.getText()).getParent().toString());
+                } else {
+                    tfServerPath.setText(Paths.get(tfServerPath.getText(), fd.getFileName()).toString());
+                }
             }
+
         }
     }
 
+    @FXML
     public void addToCloud(ActionEvent actionEvent) {
         Platform.runLater(() -> {
             List<FileInfo> fi = filesTable.getSelectionModel().getSelectedItems();
@@ -388,7 +408,7 @@ public class MainFormController implements Initializable {
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-                    client.SendObject(fc);
+                    client.sendObject(fc);
                     addEventToList("File " + f.getFileName() + " has been sent to the Cloud.");
                 } else {
                     addEventToList("Unable to send folder " + f.getFileName() + " to the Cloud.");
@@ -408,6 +428,45 @@ public class MainFormController implements Initializable {
     private void addEventToList(String message) {
         eventsList.getItems().add(message);
         eventsList.scrollTo(eventsList.getItems().size());
+
+    }
+
+    @FXML
+    public void downloadFromCloud() {
+        Platform.runLater(() -> {
+            List<FileData> fi = filesOnServerTable.getSelectionModel().getSelectedItems();
+
+            for (FileData f : fi) {
+                if (!f.isFolder()) {
+                    addEventToList("File " + f.getFileName() + " downloading attempt.");
+                    //TODO downloading
+                } else {
+                    addEventToList("Unable to send folder " + f.getFileName() + " to the Cloud.");
+                }
+
+            }
+        });
+    }
+
+    @FXML
+    public void createFolderOnServer() {
+        TextInputDialog textInputDialog = new TextInputDialog();
+        textInputDialog.setContentText("Enter new folder name");
+        System.out.println(textInputDialog.showAndWait());
+        System.out.println(textInputDialog.getResult());
+    }
+
+    @FXML
+    public void deleteOnServer() {
+        FileData f = filesOnServerTable.getSelectionModel().getSelectedItem();
+
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("Are you really want to delete ").append(f.getFileName()).append(" ?");
+
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION, sb.toString(), ButtonType.YES, ButtonType.NO);
+        alert.showAndWait();
+
 
     }
 }

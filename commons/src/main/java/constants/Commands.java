@@ -5,7 +5,8 @@ public enum Commands {
     NETWORK_ANSWER,
     GET_FILE_LIST,
     AUTHORISATION,
-    FILE_DATA;
+    FILE_DATA,
+    FILE_OVERWRITE;
 
 
 }

@@ -1,7 +1,10 @@
 package server;
 
 
+import constants.Commands;
+import constants.Status;
 import filesystem.FileNavigator;
+import filesystem.FileToWrite;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -11,43 +14,81 @@ import io.netty.handler.codec.serialization.ClassResolvers;
 import io.netty.handler.codec.serialization.ObjectDecoder;
 import io.netty.handler.codec.serialization.ObjectEncoder;
 import lombok.extern.slf4j.Slf4j;
+import network.NetworkAnswer;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Scanner;
-import java.util.UUID;
+import java.util.*;
 
 @Slf4j
 public class Server {
     public static Scanner scanner = new Scanner(System.in);
     private DBAuthService dbAuthService;
     private Map<UUID, FileNavigator> usersPlacement;
+    List<FileToWrite> listOfProcessingFiles;
+    private SocketChannel serverSocketChannel;
 
     private EventLoopGroup auth;
     private EventLoopGroup worker;
     private ServerConnectionHandler serverConnectionHandler;
 
-    public Server(){
+    public Server() {
         usersPlacement = new HashMap<>();
-        serverConnectionHandler = new ServerConnectionHandler();
-        serverConnectionHandler.setUsersPlacement(usersPlacement);
+        serverConnectionHandler = new ServerConnectionHandler(this);
+        listOfProcessingFiles = new LinkedList<>();
+        Thread t = new Thread(() -> {
+            log.info("Monitor started...");
+            while (true) {
+                try {
+                    if (FileNavigator.class != null) {
+                        if (!FileNavigator.getFilesAwait().isEmpty()) {
+                            FileToWrite ftw = FileNavigator.getFilesAwait().peek();
+                            NetworkAnswer answer = new NetworkAnswer();
+                            answer.setQuestionMessageType(Commands.FILE_DATA);
+                            answer.setAnswer(Status.FILE_EXISTS);
+                            answer.setExtraInfo(ftw.getFileName());
+                            answer.setUid(ftw.getUuid());
+                            serverSocketChannel.writeAndFlush(answer);
+                            listOfProcessingFiles.add(FileNavigator.getFilesAwait().removeFirst());
+
+                        }
+                    }
+
+                } catch (Exception e) {
+                    System.out.println(e.getMessage());
+                    break;
+                }
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+
+            }
+
+        });
+        t.setDaemon(true);
+        t.start();
 
     }
 
+    public Map<UUID, FileNavigator> getUsersPlacement() {
+        return usersPlacement;
+    }
+
     public static void main(String[] args) {
-        String commandString="";
+        String commandString = "";
         Server server = new Server();
 
         server.start();
-        while(true){
+        while (true) {
             commandString = scanner.nextLine();
 
-            if(commandString.equals("/quit")){
+            if (commandString.equals("/quit")) {
                 server.stop();
                 break;
             }
 
-            System.out.println("Command:"+commandString);
+            System.out.println("Command:" + commandString);
 
 
         }
@@ -55,17 +96,18 @@ public class Server {
     }
 
 
-    public void start(){
-        Thread t = new Thread(()->{
+    public void start() {
+        Thread t = new Thread(() -> {
             auth = new NioEventLoopGroup(1);
             worker = new NioEventLoopGroup();
-            try{
+            try {
                 ServerBootstrap serverBootstrap = new ServerBootstrap();
-                serverBootstrap.group(auth,worker)
+                serverBootstrap.group(auth, worker)
                         .channel(NioServerSocketChannel.class)
                         .childHandler(new ChannelInitializer<SocketChannel>() {
                             @Override
                             protected void initChannel(SocketChannel socketChannel) throws Exception {
+                                serverSocketChannel = socketChannel;
                                 ChannelPipeline channelPipeline = socketChannel.pipeline();
                                 channelPipeline.addLast(new ObjectDecoder(ClassResolvers.cacheDisabled(null)));
                                 channelPipeline.addLast(new ObjectEncoder());
@@ -81,7 +123,7 @@ public class Server {
 
 
                 channelFuture.channel().closeFuture().sync();
-            } catch (Exception E){
+            } catch (Exception E) {
                 log.error(E.getMessage());
             } finally {
                 auth.shutdownGracefully();
@@ -93,8 +135,26 @@ public class Server {
         t.start();
     }
 
-    public void stop(){
+    public void stop() {
         auth.shutdownGracefully();
         worker.shutdownGracefully();
+    }
+
+    public synchronized void fileWritingDecision(String fileName, UUID uuid, Status status) {
+
+        Iterator<FileToWrite> iter = listOfProcessingFiles.iterator();
+        while (iter.hasNext()) {
+            FileToWrite f = iter.next();
+            if (f.getFileName().equals(fileName) && f.getUuid().equals(uuid)) {
+                if (status.equals(Status.OK)) {
+                    iter.remove();
+                    f.setDoWrite(true);
+                    System.out.println("Ready "+f.toString());
+                    usersPlacement.get(uuid).putFileToQueue(f);
+                } else if (status.equals(Status.CANCEL)) {
+                    iter.remove();
+                }
+            }
+        }
     }
 }

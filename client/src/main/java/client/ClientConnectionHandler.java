@@ -4,8 +4,12 @@ import constants.Commands;
 import constants.Status;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import javafx.application.Platform;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.TableView;
 import lombok.extern.slf4j.Slf4j;
+import network.NetworkMessage;
 import objects.FileData;
 import network.NetworkAnswer;
 
@@ -42,6 +46,22 @@ public class ClientConnectionHandler extends ChannelInboundHandlerAdapter {
                     filesOnServerTable.getItems().clear();
                 }
                 filesOnServerTable.getItems().add((FileData) answer.getAnswer());
+
+            } else if (answer.getQuestionMessageType().equals(Commands.FILE_DATA)) {
+                Status s = (Status) answer.getAnswer();
+                if (s.equals(Status.FILE_EXISTS)) {
+                    String fileName = answer.getExtraInfo();
+                    Platform.runLater(() -> {
+                        Alert alert = new Alert(Alert.AlertType.WARNING, "File " + fileName + " already exists.\nOverwrite?", ButtonType.YES, ButtonType.NO);
+                        alert.showAndWait();
+                        NetworkMessage nm = new NetworkMessage(Commands.FILE_OVERWRITE);
+                        nm.setExtraInfo(fileName);
+                        nm.setUid(answer.getUid());
+                        nm.setStatus(alert.getResult().equals(ButtonType.YES) ? Status.OK : Status.CANCEL);
+                        ctx.writeAndFlush(nm);
+                    });
+
+                }
 
             }
         }
