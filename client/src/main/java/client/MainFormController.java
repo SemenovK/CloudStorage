@@ -6,7 +6,6 @@ import filesystem.FileInfo;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
-import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
@@ -43,8 +42,6 @@ import java.util.stream.Collectors;
 
 
 public class MainFormController implements Initializable {
-
-    private Thread monitorthread;
 
     public EventHandler<WindowEvent> getCloseWindowEvent() {
         return closeWindowEvent;
@@ -88,6 +85,10 @@ public class MainFormController implements Initializable {
     private Pane buttonsPane;
     @FXML
     private TextField tfServerPath;
+    @FXML
+    private ComboBox cbSharedFrom;
+    @FXML
+    private ContextMenu contextMenuServer;
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
@@ -96,8 +97,6 @@ public class MainFormController implements Initializable {
         for (Path p : FileSystems.getDefault().getRootDirectories()) {
             drives.add(p.toFile());
         }
-        ;
-
         diskComboBox.getItems().clear();
 
         for (File drive : drives) {
@@ -214,12 +213,10 @@ public class MainFormController implements Initializable {
     private void updateFileList(Path path) {
         synchronizePathData(path);
         try {
-            List<Path> pp = Files.list(path).collect(Collectors.toList());
             for (Path p : Files.list(path).collect(Collectors.toList())) {
                 filesTable.getItems().add(new FileInfo(p));
             }
             filesTable.sort();
-
         } catch (IOException e) {
             Alert alert = new Alert(Alert.AlertType.WARNING, "Can't refresh files list", ButtonType.OK);
             alert.showAndWait();
@@ -234,6 +231,9 @@ public class MainFormController implements Initializable {
             if (di.getFile().toPath().getRoot().equals(path.getRoot())) {
                 diskComboBox.setValue(di);
             }
+        }
+        if(client!=null){
+            client.setPathToSave(Paths.get(currentPath.getText()));
         }
 
     }
@@ -292,8 +292,7 @@ public class MainFormController implements Initializable {
         }
         setConnectedMode(client.isConnected());
         Path path = Paths.get(currentPath.getText());
-        if (path != null)
-            updateFileList(path);
+        updateFileList(path);
         client.sendObject(new NetworkMessage(Commands.GET_FILE_LIST));
         filesOnServerTable.getItems().clear();
         client.getHandler().setFileListContainer(filesOnServerTable);
@@ -325,25 +324,34 @@ public class MainFormController implements Initializable {
                 return;
             }
 
-            if (ud != null && client != null) {
+            if (client != null) {
                 client.getMySocketChannel().writeAndFlush(ud);
-                setConnectedMode(true);
-                addEventToList("Connected");
 
                 Platform.runLater(() -> {
                     while (true) {
                         try {
-                            Thread.sleep(100);
+                            Thread.sleep(1000);
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
                         if (client != null) {
-                            if (client.isConnected()) {
+                            if (client.isAuthorised()) {
+                                setConnectedMode(true);
+                                addEventToList("Connected");
+
+                                refreshButtonClick(new ActionEvent());
+                                break;
+                            } else {
+                                setConnectedMode(false);
+                                addEventToList("Connection denied");
+
+                                client.close();
                                 break;
                             }
                         }
                     }
-                    refreshButtonClick(new ActionEvent());
+
+
                 });
 
             }
@@ -423,6 +431,10 @@ public class MainFormController implements Initializable {
         buttonsPane.setDisable(!mode);
         miDisconnect.setDisable(!mode);
         miConnect.setDisable(mode);
+        for (MenuItem item : contextMenuServer.getItems()) {
+            item.setDisable(!mode);
+        }
+
     }
 
     private void addEventToList(String message) {
@@ -439,7 +451,9 @@ public class MainFormController implements Initializable {
             for (FileData f : fi) {
                 if (!f.isFolder()) {
                     addEventToList("File " + f.getFileName() + " downloading attempt.");
-                    //TODO downloading
+                    NetworkMessage nm = new NetworkMessage(Commands.FILE_DOWNLOAD);
+                    nm.setExtraInfo(f.getFileName());
+                    client.sendObject(nm);
                 } else {
                     addEventToList("Unable to send folder " + f.getFileName() + " to the Cloud.");
                 }
@@ -452,21 +466,33 @@ public class MainFormController implements Initializable {
     public void createFolderOnServer() {
         TextInputDialog textInputDialog = new TextInputDialog();
         textInputDialog.setContentText("Enter new folder name");
-        System.out.println(textInputDialog.showAndWait());
-        System.out.println(textInputDialog.getResult());
+        textInputDialog.showAndWait();
+        String folderName = textInputDialog.getResult();
+        if (folderName != null) {
+            NetworkMessage nm = new NetworkMessage(Commands.CREATE_NEW_FOLDER);
+            nm.setExtraInfo(folderName);
+            client.sendObject(nm);
+        }
     }
 
     @FXML
     public void deleteOnServer() {
         FileData f = filesOnServerTable.getSelectionModel().getSelectedItem();
-
         StringBuilder sb = new StringBuilder();
-
         sb.append("Are you really want to delete ").append(f.getFileName()).append(" ?");
 
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION, sb.toString(), ButtonType.YES, ButtonType.NO);
         alert.showAndWait();
+        if (alert.getResult().equals(ButtonType.YES)) {
+            NetworkMessage nm = new NetworkMessage(Commands.DELETE);
+            nm.setExtraInfo(f.getFileName());
+            client.sendObject(nm);
+        }
 
 
+    }
+
+    @FXML
+    public void cbSharedFromAction(ActionEvent actionEvent) {
     }
 }

@@ -24,8 +24,8 @@ import java.util.UUID;
 public class ServerConnectionHandler extends ChannelInboundHandlerAdapter {
 
 
-
     private Server parentHandler;
+    private DBService dbService;
 
     private Map<UUID, FileNavigator> usersPlacement;
 
@@ -57,17 +57,15 @@ public class ServerConnectionHandler extends ChannelInboundHandlerAdapter {
             answer.setQuestionMessageType(nm.getMessagePurpose());
 
             UserData ud = (UserData) nm;
-
-
-            //TODO добавить авторизацию по базе
-
-            if (usersPlacement != null) {
+            boolean auth = dbService.authUser(ud);
+            answer.setStatus(auth ? Status.OK : Status.DENIED);
+            if (usersPlacement != null && auth) {
                 UUID uid = UUID.randomUUID();
-                usersPlacement.put(uid, new FileNavigator(uid));
+                usersPlacement.put(uid, new FileNavigator(uid, ud.getUserID()));
                 answer.setUid(uid);
                 answer.setAnswer(Status.OK);
 
-            } else {
+            } else if(usersPlacement!=null && !auth){
                 answer.setAnswer(Status.DENIED);
             }
             ctx.writeAndFlush(answer);
@@ -96,7 +94,7 @@ public class ServerConnectionHandler extends ChannelInboundHandlerAdapter {
                     ctx.writeAndFlush(na);
                 }
 
-                int partnum = 0 + (fn.isOnTop() ? 0 : 1);
+                int partnum = (fn.isOnTop() ? 0 : 1);
 
                 for (FileInfo f : fileInfo) {
                     na.setQuestionMessageType(nm.getMessagePurpose());
@@ -112,12 +110,17 @@ public class ServerConnectionHandler extends ChannelInboundHandlerAdapter {
         } else if (nm.getMessagePurpose() == Commands.FILE_DATA && fn != null) {
             FileContent fc = (FileContent) nm;
             System.out.println(fc);
-            fn.putFileToQueue(fc.getFileName(),fc.getFileContent());
-            //fn.createAndWriteToFileOnCurrent(fc.getFileName(),fc.getFileContent(),);
+            fn.putFileToQueue(fc.getFileName(), fc.getFileContent());
 
-        } else if(nm.getMessagePurpose() == Commands.FILE_OVERWRITE && fn != null) {
-            System.out.println(nm);
-            parentHandler.fileWritingDecision(nm.getExtraInfo(),nm.getUid(),nm.getStatus());
+        } else if (nm.getMessagePurpose() == Commands.FILE_OVERWRITE && fn != null) {
+            parentHandler.fileWritingDecision(nm.getExtraInfo(), nm.getUid(), nm.getStatus());
+        } else if (nm.getMessagePurpose() == Commands.CREATE_NEW_FOLDER && fn != null) {
+            fn.createFolder(nm.getExtraInfo());
+        } else if (nm.getMessagePurpose() == Commands.DELETE && fn != null) {
+            fn.deleteFileOrFolder(nm.getExtraInfo());
+        }else if (nm.getMessagePurpose() == Commands.FILE_DOWNLOAD && fn != null) {
+            parentHandler.sendFile(nm.getExtraInfo(),nm.getUid());
+
         }
     }
 
@@ -125,5 +128,9 @@ public class ServerConnectionHandler extends ChannelInboundHandlerAdapter {
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         log.info("Client connected");
 
+    }
+
+    public void setDBService(DBService dbService) {
+        this.dbService = dbService;
     }
 }

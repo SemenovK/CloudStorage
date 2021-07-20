@@ -14,16 +14,21 @@ import io.netty.handler.codec.serialization.ClassResolvers;
 import io.netty.handler.codec.serialization.ObjectDecoder;
 import io.netty.handler.codec.serialization.ObjectEncoder;
 import lombok.extern.slf4j.Slf4j;
+import network.FileContent;
 import network.NetworkAnswer;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 
 @Slf4j
 public class Server {
     public static Scanner scanner = new Scanner(System.in);
-    private DBAuthService dbAuthService;
+    private DBService dbService;
     private Map<UUID, FileNavigator> usersPlacement;
-    List<FileToWrite> listOfProcessingFiles;
+    private List<FileToWrite> listOfProcessingFiles;
     private SocketChannel serverSocketChannel;
 
     private EventLoopGroup auth;
@@ -35,31 +40,29 @@ public class Server {
         serverConnectionHandler = new ServerConnectionHandler(this);
         listOfProcessingFiles = new LinkedList<>();
         Thread t = new Thread(() -> {
-            log.info("Monitor started...");
+            log.info("File Conflict Monitor started...");
             while (true) {
                 try {
-                    if (FileNavigator.class != null) {
-                        if (!FileNavigator.getFilesAwait().isEmpty()) {
-                            FileToWrite ftw = FileNavigator.getFilesAwait().peek();
-                            NetworkAnswer answer = new NetworkAnswer();
-                            answer.setQuestionMessageType(Commands.FILE_DATA);
-                            answer.setAnswer(Status.FILE_EXISTS);
-                            answer.setExtraInfo(ftw.getFileName());
-                            answer.setUid(ftw.getUuid());
-                            serverSocketChannel.writeAndFlush(answer);
-                            listOfProcessingFiles.add(FileNavigator.getFilesAwait().removeFirst());
 
-                        }
+                    if (!FileNavigator.getFilesAwait().isEmpty()) {
+                        FileToWrite ftw = FileNavigator.getFilesAwait().peek();
+                        NetworkAnswer answer = new NetworkAnswer();
+                        answer.setQuestionMessageType(Commands.FILE_DATA);
+                        answer.setAnswer(Status.FILE_EXISTS);
+                        answer.setExtraInfo(ftw.getFileName());
+                        answer.setUid(ftw.getUuid());
+                        serverSocketChannel.writeAndFlush(answer);
+                        listOfProcessingFiles.add(FileNavigator.getFilesAwait().removeFirst());
                     }
 
                 } catch (Exception e) {
-                    System.out.println(e.getMessage());
+                    log.error(e.getMessage());
                     break;
                 }
                 try {
                     Thread.sleep(100);
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    log.error(e.getMessage());
                 }
 
 
@@ -76,7 +79,7 @@ public class Server {
     }
 
     public static void main(String[] args) {
-        String commandString = "";
+        String commandString;
         Server server = new Server();
 
         server.start();
@@ -87,8 +90,9 @@ public class Server {
                 server.stop();
                 break;
             }
-
-            System.out.println("Command:" + commandString);
+            if (commandString.startsWith("/userAdd")) {
+                //todo
+            }
 
 
         }
@@ -117,8 +121,9 @@ public class Server {
                         });
                 ChannelFuture channelFuture = serverBootstrap.bind(20115).sync();
                 log.info("Server started");
-                dbAuthService = new DBAuthService();
-                dbAuthService.start();
+                dbService = new DBService();
+                serverConnectionHandler.setDBService(dbService);
+                dbService.start();
                 log.info("Connected to database");
 
 
@@ -142,19 +147,38 @@ public class Server {
 
     public synchronized void fileWritingDecision(String fileName, UUID uuid, Status status) {
 
-        Iterator<FileToWrite> iter = listOfProcessingFiles.iterator();
-        while (iter.hasNext()) {
-            FileToWrite f = iter.next();
+        Iterator<FileToWrite> iterator = listOfProcessingFiles.iterator();
+        while (iterator.hasNext()) {
+            FileToWrite f = iterator.next();
             if (f.getFileName().equals(fileName) && f.getUuid().equals(uuid)) {
                 if (status.equals(Status.OK)) {
-                    iter.remove();
+                    iterator.remove();
                     f.setDoWrite(true);
-                    System.out.println("Ready "+f.toString());
                     usersPlacement.get(uuid).putFileToQueue(f);
                 } else if (status.equals(Status.CANCEL)) {
-                    iter.remove();
+                    iterator.remove();
                 }
             }
+        }
+    }
+
+    public synchronized void sendFile(String fileName, UUID uuid) {
+        FileNavigator fn = getUsersPlacement().get(uuid);
+        Path p = Paths.get(fn.getCurrentFolder().toString(), fileName);
+        if (p.toFile().exists()) {
+            try {
+                FileContent fileContent = new FileContent(fileName, (int) Files.size(p));
+                fileContent.setFileContent(Files.readAllBytes(p));
+                NetworkAnswer<FileContent> answer = new NetworkAnswer<>();
+                answer.setAnswer(fileContent);
+                answer.setQuestionMessageType(Commands.FILE_DOWNLOAD);
+                answer.setUid(uuid);
+                serverSocketChannel.writeAndFlush(answer);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+
         }
     }
 }

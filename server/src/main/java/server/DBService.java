@@ -2,13 +2,12 @@ package server;
 
 import lombok.extern.java.Log;
 import lombok.extern.slf4j.Slf4j;
+import network.UserData;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
+import java.sql.*;
 
 @Slf4j
-public class DBAuthService {
+public class DBService {
     static final String DB_URL = "jdbc:mysql://localhost:3306/cloudstorage?useSSL=false";
     static final String DB_USER = "root";
     static final String DB_PASS = "dikop";
@@ -48,4 +47,26 @@ public class DBAuthService {
         log.info("Authentication Service is stopped");
     }
 
+    public boolean authUser(UserData userData){
+        boolean result = false;
+        PreparedStatement query;
+        try {
+            query = connection.prepareStatement("SELECT id, userName FROM users WHERE login=? and password=?");
+            query.setString(1,userData.getUserLogin());
+            query.setString(2,userData.getUserPassword());
+            ResultSet resultset = query.executeQuery();
+            int userId = -1;
+            while (resultset.next()){
+                userId=resultset.getInt(1);
+            }
+            if(userId > 0){
+                userData.setUserID(userId);
+                result = true;
+            }
+
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
+        return result;
+    }
 }

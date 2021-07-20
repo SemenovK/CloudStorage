@@ -9,6 +9,7 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.TableView;
 import lombok.extern.slf4j.Slf4j;
+import network.FileContent;
 import network.NetworkMessage;
 import objects.FileData;
 import network.NetworkAnswer;
@@ -31,10 +32,12 @@ public class ClientConnectionHandler extends ChannelInboundHandlerAdapter {
                 if (answer.getAnswer().equals(Status.OK)) {
                     parentHandle.setUserToken(answer.getUid());
                     parentHandle.setConnected(true);
+                    parentHandle.setAuthorised(true);
                 }
                 if (answer.getAnswer().equals(Status.DENIED)) {
                     parentHandle.setUserToken(null);
                     parentHandle.setConnected(false);
+                    parentHandle.setAuthorised(false);
                 }
 
             }
@@ -62,6 +65,10 @@ public class ClientConnectionHandler extends ChannelInboundHandlerAdapter {
                     });
 
                 }
+
+            } else if (answer.getQuestionMessageType().equals(Commands.FILE_DOWNLOAD)) {
+                FileContent fc = (FileContent) answer.getAnswer();
+                parentHandle.writeFile(fc);
 
             }
         }

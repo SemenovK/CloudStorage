@@ -2,25 +2,19 @@ package filesystem;
 
 
 import lombok.extern.slf4j.Slf4j;
-import objects.FileData;
+import network.FileContent;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
-import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
 public class FileNavigator implements Serializable {
-
 
 
     LinkedList<FileToWrite> filesQueue;
@@ -35,8 +29,11 @@ public class FileNavigator implements Serializable {
         return uuid;
     }
 
-    public FileNavigator(UUID uid) {
-        startingPoint = Paths.get("C:", "TMP");
+    public FileNavigator(UUID uid, int userID) {
+        startingPoint = Paths.get("C:", "TMP",Integer.toString(userID));
+        if(!startingPoint.toFile().exists()){
+            startingPoint.toFile().mkdirs();
+        }
         uuid = uid;
         init();
     }
@@ -58,11 +55,8 @@ public class FileNavigator implements Serializable {
                     if (fileToWrite.doWrite) {
                         fileToWrite = filesQueue.removeFirst();
                         createAndWriteToFileOnCurrent(fileToWrite.filePath, fileToWrite.fileName, fileToWrite.bytes);
-                        log.info("File " + fileToWrite.fileName + " recieved");
                     } else {
-                        log.info("File " + fileToWrite.fileName + " exists");
                         filesAwait.add(filesQueue.removeFirst());
-                        System.out.println("Waiting-"+filesAwait.size());
                     }
                 }
 
@@ -86,8 +80,8 @@ public class FileNavigator implements Serializable {
         return fileInfoList;
     }
 
-    public void goInto(String foldername) {
-        currentFolder = Paths.get(currentFolder.toString(), foldername);
+    public void goInto(String folderName) {
+        currentFolder = Paths.get(currentFolder.toString(), folderName);
     }
 
     public void goUp() {
@@ -113,11 +107,40 @@ public class FileNavigator implements Serializable {
         }
     }
 
-    public synchronized void putFileToQueue(String filename, byte[] fileContent){
+    public synchronized void putFileToQueue(String filename, byte[] fileContent) {
         filesQueue.add(new FileToWrite(this.uuid, this.currentFolder, filename, fileContent));
     }
 
     public void putFileToQueue(FileToWrite f) {
         filesQueue.add(f);
+    }
+
+    public void createFolder(String folderName) {
+        Path newFile = Paths.get(currentFolder.toString(), folderName);
+        if (!newFile.toFile().exists()) {
+            newFile.toFile().mkdir();
+        }
+    }
+
+    public void deleteFileOrFolder(String fileOrFolderName) {
+        Path file = Paths.get(currentFolder.toString(), fileOrFolderName);
+        System.out.println(file.toString());
+        File fileHandle = file.toFile();
+        if (fileHandle.exists()) {
+            try {
+                if (fileHandle.isDirectory()) {
+                    Files.walk(file).sorted(Comparator.reverseOrder()).map(Path::toFile).forEach(File::delete);
+                } else if (fileHandle.isFile()) {
+                    Files.delete(file);
+                }
+            } catch (IOException e) {
+                log.error("Error during delete - "+file.toString());
+
+            }
+        }
+    }
+
+    public Path getCurrentFolder() {
+        return currentFolder;
     }
 }

@@ -10,8 +10,13 @@ import io.netty.handler.codec.serialization.ObjectDecoder;
 import io.netty.handler.codec.serialization.ObjectEncoder;
 
 import lombok.extern.slf4j.Slf4j;
+import network.FileContent;
 import network.NetworkMessage;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.UUID;
 
 @Slf4j
@@ -23,15 +28,30 @@ public class Client {
     private ClientConnectionHandler handler;
     private UUID userToken;
     private boolean connected;
+    private Path pathToSave;
+
+    public void setAuthorised(boolean authorised) {
+        this.authorised = authorised;
+    }
+
+    public boolean isAuthorised() {
+        return authorised;
+    }
+
+    private boolean authorised;
+
+    public Path getPathToSave() {
+        return pathToSave;
+    }
+
+    public void setPathToSave(Path pathToSave) {
+        this.pathToSave = pathToSave;
+    }
 
     public boolean isConnected() {
         return connected;
     }
 
-
-    public UUID getUserToken() {
-        return userToken;
-    }
 
     public void setUserToken(UUID userToken) {
         this.userToken = userToken;
@@ -52,7 +72,7 @@ public class Client {
             group = new NioEventLoopGroup();
             try {
                 Bootstrap bootstrap = new Bootstrap();
-                new Bootstrap().group(group)
+                bootstrap.group(group)
                         .channel(NioSocketChannel.class)
                         .handler(new ChannelInitializer<SocketChannel>() {
                             @Override
@@ -99,6 +119,16 @@ public class Client {
 
     public void setConnected(boolean b) {
         connected = b;
+    }
+
+    public void writeFile(FileContent fc) {
+        if(getPathToSave().toFile().exists()){
+            try {
+                Files.write(Paths.get(getPathToSave().toString(), fc.getFileName()),fc.getFileContent());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 }
 
