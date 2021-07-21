@@ -22,6 +22,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.function.Consumer;
 
 @Slf4j
 public class Server {
@@ -165,14 +166,30 @@ public class Server {
     public synchronized void sendFile(String fileName, UUID uuid) {
         FileNavigator fn = getUsersPlacement().get(uuid);
         Path p = Paths.get(fn.getCurrentFolder().toString(), fileName);
-        if (p.toFile().exists()) {
+        try {
+            Files.walk(Paths.get(fn.getCurrentFolder().toString()))
+                    .filter((e)->!Files.isDirectory(e))
+                    .forEach(path -> sendFile(path,fn));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
+    }
+
+    private void sendFile(Path filePath, FileNavigator fn){
+        String sPath = fn.getCurrentFolder().toString();
+        String sFilePath = filePath.toString();
+        sFilePath = sFilePath.replace(sPath,"").replace(filePath.getFileName().toString(),"");
+
+        if (filePath.toFile().exists()) {
             try {
-                FileContent fileContent = new FileContent(fileName, (int) Files.size(p));
-                fileContent.setFileContent(Files.readAllBytes(p));
+                FileContent fileContent = new FileContent(sFilePath,filePath.getFileName().toString(), (int) Files.size(filePath));
+                fileContent.setFileContent(Files.readAllBytes(filePath));
                 NetworkAnswer<FileContent> answer = new NetworkAnswer<>();
                 answer.setAnswer(fileContent);
                 answer.setQuestionMessageType(Commands.FILE_DOWNLOAD);
-                answer.setUid(uuid);
+                answer.setUid(fn.getUuid());
                 serverSocketChannel.writeAndFlush(answer);
             } catch (IOException e) {
                 e.printStackTrace();

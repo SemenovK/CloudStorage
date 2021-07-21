@@ -47,7 +47,7 @@
                     <children>
                         <VBox alignment="CENTER" prefWidth="160.0" spacing="10.0">
                             <children>
-                                <Button fx:id="button" mnemonicParsing="false" onAction="#refreshButtonClick" prefWidth="120" text="Refresh" />
+                                <Button fx:id="btRefresh" mnemonicParsing="false" onAction="#refreshButtonClick" prefWidth="120" text="Refresh" />
                                 <Button fx:id="btAddToCloud" mnemonicParsing="false" onAction="#addToCloud" prefWidth="120" text="Copy to Cloud" />
                                 <Button fx:id="btRemoveFromCloud" mnemonicParsing="false" onAction="#downloadFromCloud" prefWidth="120" text="Copy from Cloud" />
                             </children>

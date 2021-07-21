@@ -1,5 +1,6 @@
 package client;
 
+import filesystem.FileInfo;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -13,8 +14,10 @@ import lombok.extern.slf4j.Slf4j;
 import network.FileContent;
 import network.NetworkMessage;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.UUID;
@@ -122,9 +125,57 @@ public class Client {
     }
 
     public void writeFile(FileContent fc) {
-        if(getPathToSave().toFile().exists()){
+        if (getPathToSave().toFile().exists()) {
             try {
-                Files.write(Paths.get(getPathToSave().toString(), fc.getFileName()),fc.getFileContent());
+                String filePath = fc.getFilePath();
+                if (filePath.equals("\\")) {
+                    Files.write(Paths.get(getPathToSave().toString(), fc.getFileName()), fc.getFileContent());
+                    //System.out.println(Paths.get(getPathToSave().toString(), filePath, fc.getFileName()));
+                } else {
+                    File newFolder = Paths.get(getPathToSave().toString(), filePath).toFile();
+                    if (!newFolder.exists()) {
+                        newFolder.mkdirs();
+                    }
+
+                    Files.write(Paths.get(getPathToSave().toString(), filePath, fc.getFileName()), fc.getFileContent());
+                    //System.out.println(Paths.get(getPathToSave().toString(), filePath, fc.getFileName()));
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public void sendFile(FileInfo fileInfo) {
+
+        if (!fileInfo.isFolder()) {
+            FileContent fc = new FileContent(fileInfo.getFileName(), (int) fileInfo.getFileSize());
+            try {
+                fc.setFileContent(Files.readAllBytes(fileInfo.getFilePath()));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            sendObject(fc);
+        } else if (fileInfo.isFolder()) {
+            String parentPath = fileInfo.getFilePath().toString().replace(fileInfo.getFileName(),"");
+            try {
+                Files.walk(Paths.get(fileInfo.getFilePath().toString()))
+                        .filter((e) -> !Files.isDirectory(e))
+                        .forEach(path -> {
+
+                            String p = path.toString().replace(parentPath.toString(), "").replace(path.getFileName().toString(), "");
+                            try {
+                                FileContent fc = new FileContent(p, path.getFileName().toString(), (int) Files.size(path));
+                                fc.setFileContent(Files.readAllBytes(path));
+                                sendObject(fc);
+                                System.out.println(fc);
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+
+
+                        });
             } catch (IOException e) {
                 e.printStackTrace();
             }

@@ -10,6 +10,7 @@ import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -101,6 +102,9 @@ public class FileNavigator implements Serializable {
     public synchronized void createAndWriteToFileOnCurrent(Path path, String fileName, byte[] fileContent) {
         Path newFile = Paths.get(path.toString(), fileName);
         try {
+            if(!Files.exists(path)){
+                path.toFile().mkdirs();
+            }
             Files.write(newFile, fileContent);
         } catch (IOException e) {
             e.printStackTrace();
@@ -109,6 +113,9 @@ public class FileNavigator implements Serializable {
 
     public synchronized void putFileToQueue(String filename, byte[] fileContent) {
         filesQueue.add(new FileToWrite(this.uuid, this.currentFolder, filename, fileContent));
+    }
+    public synchronized void putFileToQueue(FileContent fc) {
+        filesQueue.add(new FileToWrite(this.uuid, Paths.get(this.currentFolder.toString(),fc.getFilePath()), fc.getFileName(), fc.getFileContent()));
     }
 
     public void putFileToQueue(FileToWrite f) {
@@ -143,4 +150,6 @@ public class FileNavigator implements Serializable {
     public Path getCurrentFolder() {
         return currentFolder;
     }
+
+
 }

@@ -38,8 +38,8 @@ public class ServerConnectionHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
 
-        log.info("Recieved");
         NetworkMessage nm = (NetworkMessage) msg;
+        log.trace("Recieved: ",nm);
         messageDispatch(nm, ctx);
     }
 
@@ -110,7 +110,8 @@ public class ServerConnectionHandler extends ChannelInboundHandlerAdapter {
         } else if (nm.getMessagePurpose() == Commands.FILE_DATA && fn != null) {
             FileContent fc = (FileContent) nm;
             System.out.println(fc);
-            fn.putFileToQueue(fc.getFileName(), fc.getFileContent());
+            //fn.putFileToQueue(fc.getFileName(), fc.getFileContent());
+            fn.putFileToQueue(fc);
 
         } else if (nm.getMessagePurpose() == Commands.FILE_OVERWRITE && fn != null) {
             parentHandler.fileWritingDecision(nm.getExtraInfo(), nm.getUid(), nm.getStatus());

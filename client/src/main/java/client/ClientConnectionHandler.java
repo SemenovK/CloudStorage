@@ -5,6 +5,7 @@ import constants.Status;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import javafx.application.Platform;
+import javafx.event.ActionEvent;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.TableView;
@@ -17,6 +18,8 @@ import network.NetworkAnswer;
 @Slf4j
 public class ClientConnectionHandler extends ChannelInboundHandlerAdapter {
     private TableView<FileData> filesOnServerTable;
+
+
     private Client parentHandle;
 
     public ClientConnectionHandler(Client client) {
@@ -49,7 +52,6 @@ public class ClientConnectionHandler extends ChannelInboundHandlerAdapter {
                     filesOnServerTable.getItems().clear();
                 }
                 filesOnServerTable.getItems().add((FileData) answer.getAnswer());
-
             } else if (answer.getQuestionMessageType().equals(Commands.FILE_DATA)) {
                 Status s = (Status) answer.getAnswer();
                 if (s.equals(Status.FILE_EXISTS)) {

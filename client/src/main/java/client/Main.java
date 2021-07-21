@@ -16,8 +16,11 @@ public class Main extends Application {
         Parent root = loader.load();
         MainFormController controller = loader.getController();
         primaryStage.setTitle("Cloud storage");
-        primaryStage.setScene(new Scene(root, 1200, 700));
+        Scene scene = new Scene(root, 1200, 700);
+        primaryStage.setScene(scene);
+        controller.setScene(scene);
         primaryStage.show();
+
         controller.authorisationWindowShow();
         primaryStage.setOnCloseRequest(controller.getCloseWindowEvent());
 

@@ -3,6 +3,7 @@ package client;
 import constants.Commands;
 import filesystem.DiskInfo;
 import filesystem.FileInfo;
+import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -22,6 +23,7 @@ import javafx.scene.layout.Pane;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
+import lombok.extern.slf4j.Slf4j;
 import network.FileContent;
 import objects.FileData;
 import network.NetworkMessage;
@@ -40,7 +42,7 @@ import java.util.List;
 import java.util.ResourceBundle;
 import java.util.stream.Collectors;
 
-
+@Slf4j
 public class MainFormController implements Initializable {
 
     public EventHandler<WindowEvent> getCloseWindowEvent() {
@@ -60,6 +62,12 @@ public class MainFormController implements Initializable {
     };
 
     private Client client;
+
+    private Scene scene;
+
+    public void setScene(Scene scene) {
+        this.scene = scene;
+    }
 
     public Client getClient() {
         return client;
@@ -232,7 +240,7 @@ public class MainFormController implements Initializable {
                 diskComboBox.setValue(di);
             }
         }
-        if(client!=null){
+        if (client != null) {
             client.setPathToSave(Paths.get(currentPath.getText()));
         }
 
@@ -242,6 +250,7 @@ public class MainFormController implements Initializable {
     public void goToPathClick(ActionEvent actionEvent) {
         Path p = Paths.get(currentPath.getText());
         updateFileList(p.normalize().toAbsolutePath());
+
     }
 
     @FXML
@@ -249,6 +258,7 @@ public class MainFormController implements Initializable {
         Path path = Paths.get(currentPath.getText()).getParent();
         if (path != null)
             updateFileList(path);
+
     }
 
     @FXML
@@ -293,7 +303,9 @@ public class MainFormController implements Initializable {
         setConnectedMode(client.isConnected());
         Path path = Paths.get(currentPath.getText());
         updateFileList(path);
-        client.sendObject(new NetworkMessage(Commands.GET_FILE_LIST));
+        if (client != null)
+            if (client.isConnected())
+                client.sendObject(new NetworkMessage(Commands.GET_FILE_LIST));
         filesOnServerTable.getItems().clear();
         client.getHandler().setFileListContainer(filesOnServerTable);
 
@@ -330,16 +342,16 @@ public class MainFormController implements Initializable {
                 Platform.runLater(() -> {
                     while (true) {
                         try {
-                            Thread.sleep(1000);
+                            Thread.sleep(500);
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
                         if (client != null) {
                             if (client.isAuthorised()) {
                                 setConnectedMode(true);
-                                addEventToList("Connected");
-
+                                ((Stage) scene.getWindow()).setTitle("Cloud storage. User [" + ud.getUserLogin() + "] connected.");
                                 refreshButtonClick(new ActionEvent());
+                                addEventToList("Connected");
                                 break;
                             } else {
                                 setConnectedMode(false);
@@ -372,8 +384,7 @@ public class MainFormController implements Initializable {
 
             client.close();
             client = null;
-
-
+            
         }
 
     }
@@ -401,6 +412,7 @@ public class MainFormController implements Initializable {
             }
 
         }
+
     }
 
     @FXML
@@ -409,23 +421,13 @@ public class MainFormController implements Initializable {
             List<FileInfo> fi = filesTable.getSelectionModel().getSelectedItems();
 
             for (FileInfo f : fi) {
-                if (!f.isFolder()) {
-                    FileContent fc = new FileContent(f.getFileName(), (int) f.getFileSize());
-                    try {
-                        fc.setFileContent(Files.readAllBytes(f.getFilePath()));
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                    client.sendObject(fc);
-                    addEventToList("File " + f.getFileName() + " has been sent to the Cloud.");
-                } else {
-                    addEventToList("Unable to send folder " + f.getFileName() + " to the Cloud.");
-                }
-
+                client.sendFile(f);
+                addEventToList("File " + f.getFileName() + " has been sent to the Cloud.");
             }
         });
 
     }
+
 
     private void setConnectedMode(boolean mode) {
         buttonsPane.setDisable(!mode);
@@ -433,6 +435,9 @@ public class MainFormController implements Initializable {
         miConnect.setDisable(mode);
         for (MenuItem item : contextMenuServer.getItems()) {
             item.setDisable(!mode);
+        }
+        if (!mode && scene != null) {
+            ((Stage) scene.getWindow()).setTitle("Cloud storage");
         }
 
     }
@@ -449,17 +454,16 @@ public class MainFormController implements Initializable {
             List<FileData> fi = filesOnServerTable.getSelectionModel().getSelectedItems();
 
             for (FileData f : fi) {
-                if (!f.isFolder()) {
-                    addEventToList("File " + f.getFileName() + " downloading attempt.");
-                    NetworkMessage nm = new NetworkMessage(Commands.FILE_DOWNLOAD);
-                    nm.setExtraInfo(f.getFileName());
-                    client.sendObject(nm);
-                } else {
-                    addEventToList("Unable to send folder " + f.getFileName() + " to the Cloud.");
-                }
+                //  if (!f.isFolder()) {
+                addEventToList("File " + f.getFileName() + " downloading attempt.");
+                NetworkMessage nm = new NetworkMessage(Commands.FILE_DOWNLOAD);
+                nm.setExtraInfo(f.getFileName());
+                client.sendObject(nm);
+
 
             }
         });
+
     }
 
     @FXML
