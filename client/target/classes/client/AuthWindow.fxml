@@ -13,8 +13,8 @@
       <PasswordField fx:id="tfPassword" />
       <HBox alignment="CENTER_RIGHT" prefHeight="45.0" prefWidth="600.0" spacing="15.0">
          <children>
-            <Button mnemonicParsing="false" text="Log in" onAction="#onOk" fx:id="okButton"/>
-            <Button mnemonicParsing="false" text="Cancel" onAction="#onCancel" fx:id="cancelButton"/>
+            <Button mnemonicParsing="false" text="Log in" onAction="#onOk" fx:id="okButton" defaultButton="true"/>
+            <Button mnemonicParsing="false" text="Cancel" onAction="#onCancel" fx:id="cancelButton" cancelButton="true"/>
          </children>
          <opaqueInsets>
             <Insets />

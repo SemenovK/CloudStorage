@@ -5,12 +5,8 @@ import constants.Commands;
 public class NetworkAnswer<T> extends NetworkMessage {
     private Commands questionMessageType;
     private T answer;
-    private int totalParts;
     private int currentPart;
 
-    public int getTotalParts() {
-        return totalParts;
-    }
 
     public int getCurrentPart() {
         return currentPart;
@@ -18,18 +14,13 @@ public class NetworkAnswer<T> extends NetworkMessage {
 
     public NetworkAnswer() {
         super(Commands.NETWORK_ANSWER);
-        this.totalParts = 1;
     }
 
     public void setCurrentPart(int currentPart) {
-        if(currentPart>0 && currentPart<totalParts)
             this.currentPart = currentPart;
     }
 
-    public NetworkAnswer(int partsNum) {
-        super(Commands.NETWORK_ANSWER);
-        this.totalParts = partsNum;
-    }
+
 
     public Commands getQuestionMessageType() {
         return questionMessageType;
@@ -40,7 +31,6 @@ public class NetworkAnswer<T> extends NetworkMessage {
         return "NetworkAnswer{" +
                 "questionMessageType=" + questionMessageType +
                 ", answer=" + answer +
-                ", totalParts=" + totalParts +
                 ", currentPart=" + currentPart +
                 '}';
     }

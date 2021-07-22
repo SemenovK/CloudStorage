@@ -1,9 +1,9 @@
 package client;
 
 import constants.Commands;
+import constants.Status;
 import filesystem.DiskInfo;
 import filesystem.FileInfo;
-import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -24,10 +24,10 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 import lombok.extern.slf4j.Slf4j;
-import network.FileContent;
 import objects.FileData;
 import network.NetworkMessage;
 import network.UserData;
+import objects.UserInfo;
 
 import java.io.File;
 import java.io.IOException;
@@ -62,7 +62,7 @@ public class MainFormController implements Initializable {
     };
 
     private Client client;
-
+    private boolean sharedMode;
     private Scene scene;
 
     public void setScene(Scene scene) {
@@ -94,7 +94,7 @@ public class MainFormController implements Initializable {
     @FXML
     private TextField tfServerPath;
     @FXML
-    private ComboBox cbSharedFrom;
+    private ComboBox<UserInfo> cbSharedFrom;
     @FXML
     private ContextMenu contextMenuServer;
 
@@ -143,9 +143,32 @@ public class MainFormController implements Initializable {
 
 
         TableColumn<FileInfo, String> fileNameColumn = new TableColumn<>("Name");
-        fileNameColumn.setCellValueFactory(param -> new SimpleStringProperty(param.getValue().getFileName()));
+        fileNameColumn.setCellValueFactory(param -> new SimpleObjectProperty(param.getValue().getFileName()));
         fileNameColumn.setPrefWidth(250);
 
+        fileNameColumn.setCellFactory(column -> new TableCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (item == null || empty) {
+                    setText(null);
+                    setStyle("");
+                } else if (!empty && item != null) {
+                    FileInfo fi = this.getTableRow().getItem();
+                    if (fi != null) {
+                        if (this.getTableRow().getItem().isFolder()) {
+                            setStyle("-fx-font-weight: bold;");
+                        } else {
+                            setStyle("");
+                        }
+                        setText(this.getTableRow().getItem().getFileName());
+                    }
+
+                }
+
+
+            }
+        });
 
         TableColumn<FileInfo, Long> fileSizeColumn = new TableColumn<>("Size");
         fileSizeColumn.setCellValueFactory(param -> new SimpleObjectProperty(param.getValue().getFileSize()));
@@ -182,7 +205,34 @@ public class MainFormController implements Initializable {
         TableColumn<FileData, String> fileNameServerColumn = new TableColumn<>("Name");
         fileNameServerColumn.setCellValueFactory(param -> new SimpleStringProperty(param.getValue().getFileName()));
         fileNameServerColumn.setPrefWidth(150);
+        fileNameServerColumn.setCellFactory(column -> new TableCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (item == null || empty) {
+                    setText(null);
+                    setStyle("");
+                } else if (!empty && item != null) {
+                    FileData fi = this.getTableRow().getItem();
+                    if (fi != null) {
+                        if (fi.isFolder()) {
+                            if (fi.isSharedFolder()) {
+                                setStyle("-fx-text-fill: blue;-fx-font-weight: bold;");
 
+                            } else {
+                                setStyle("-fx-font-weight: bold");
+                            }
+                        } else {
+                            setStyle("");
+                        }
+                        setText(this.getTableRow().getItem().getFileName());
+                    }
+
+                }
+
+
+            }
+        });
 
         TableColumn<FileData, Long> fileSizeServerColumn = new TableColumn<>("Size");
         fileSizeServerColumn.setCellValueFactory(param -> new SimpleObjectProperty(param.getValue().getFileSize()));
@@ -213,7 +263,45 @@ public class MainFormController implements Initializable {
         });
         filesOnServerTable.getColumns().addAll(fileNameServerColumn, fileSizeServerColumn);
         updateFileList(Paths.get(System.getProperty("user.home")).toAbsolutePath().normalize());
-        tfServerPath.setText("[HOME]");
+
+
+        cbSharedFrom.setButtonCell(new ListCell<UserInfo>() {
+            @Override
+            protected void updateItem(UserInfo item, boolean empty) {
+                super.updateItem(item, empty);
+                if (item != null || !empty) {
+                    if (!item.isThisUserIsCurrent()) {
+                        setText("[Shared from " + item.getUserName() + "]");
+                    } else {
+                        setText(item.getUserName());
+                    }
+
+
+                } else {
+                    setText("");
+                }
+
+            }
+        });
+        cbSharedFrom.setCellFactory(row -> new ComboBoxListCell<UserInfo>() {
+            @Override
+            public void updateItem(UserInfo item, boolean empty) {
+                super.updateItem(item, empty);
+                if (item != null || !empty) {
+                    if (!item.isThisUserIsCurrent()) {
+                        setText("[Shared from " + item.getUserName() + "]");
+                    } else {
+                        setText(item.getUserName());
+                    }
+
+                } else {
+                    setText("");
+                }
+            }
+
+        });
+        cbSharedFrom.getItems().clear();
+        tfServerPath.setText(cbSharedFrom.getButtonCell().getText());
 
     }
 
@@ -303,11 +391,18 @@ public class MainFormController implements Initializable {
         setConnectedMode(client.isConnected());
         Path path = Paths.get(currentPath.getText());
         updateFileList(path);
-        if (client != null)
-            if (client.isConnected())
-                client.sendObject(new NetworkMessage(Commands.GET_FILE_LIST));
         filesOnServerTable.getItems().clear();
         client.getHandler().setFileListContainer(filesOnServerTable);
+        UserInfo ui = cbSharedFrom.getSelectionModel().getSelectedItem();
+        client.askFilesList(ui);
+        client.askUserList();
+        client.askFriendsList();
+
+
+        cbSharedFrom.getItems().clear();
+        cbSharedFrom.getItems().addAll(client.getFriendsList());
+        cbSharedFrom.setValue(ui);
+        tfServerPath.setText("[USER_HOME]");
 
 
     }
@@ -323,7 +418,6 @@ public class MainFormController implements Initializable {
             Stage stage = new Stage();
             stage.setTitle("Log in");
             stage.setScene(new Scene(root, 350, 160));
-            stage.initModality(Modality.WINDOW_MODAL);
             AuthWindowController loginWindow = loader.getController();
             loginWindow.setParentController(this);
             client = new Client();
@@ -342,7 +436,7 @@ public class MainFormController implements Initializable {
                 Platform.runLater(() -> {
                     while (true) {
                         try {
-                            Thread.sleep(500);
+                            Thread.sleep(1000);
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
@@ -384,7 +478,7 @@ public class MainFormController implements Initializable {
 
             client.close();
             client = null;
-            
+
         }
 
     }
@@ -397,7 +491,8 @@ public class MainFormController implements Initializable {
     public void onFilesServerTableClick(MouseEvent mouseEvent) {
         if (mouseEvent.getClickCount() == 2) {
             FileData fd = filesOnServerTable.getSelectionModel().getSelectedItem();
-            if (fd.isFolder()) {
+          if (fd.isFolder() && !fd.isVirtual()) {
+
                 NetworkMessage nm = new NetworkMessage(Commands.GET_FILE_LIST);
                 nm.setExtraInfo(fd.getFileName());
                 client.sendObject(nm);
@@ -409,7 +504,20 @@ public class MainFormController implements Initializable {
                 } else {
                     tfServerPath.setText(Paths.get(tfServerPath.getText(), fd.getFileName()).toString());
                 }
+            } else if((fd.isFolder() && fd.isVirtual()))
+
+            {
+                NetworkMessage nm = new NetworkMessage(Commands.GET_FILE_SHAREDLIST);
+                nm.setExtraInfo(Integer.toString(fd.getFolderID()));
+                client.sendObject(nm);
+                filesOnServerTable.getItems().clear();
+                if (fd.getFileSize() == -2) {
+                    tfServerPath.setText(Paths.get(tfServerPath.getText()).getParent().toString());
+                } else {
+                    tfServerPath.setText(Paths.get(tfServerPath.getText(), fd.getFileName()).toString());
+                }
             }
+
 
         }
 
@@ -498,5 +606,73 @@ public class MainFormController implements Initializable {
 
     @FXML
     public void cbSharedFromAction(ActionEvent actionEvent) {
+        UserInfo ui = cbSharedFrom.getSelectionModel().getSelectedItem();
+        tfServerPath.setText(cbSharedFrom.getButtonCell().getText());
+        if (ui != null) {
+            if (ui.isThisUserIsCurrent()) {
+                NetworkMessage nm = new NetworkMessage(Commands.GO_INTO_NORMAL_MODE);
+                client.sendObject(nm);
+                this.sharedMode = false;
+                client.askFilesList(ui);
+            } else {
+                this.sharedMode = true;
+                client.getSharedFoldersListFromUser(ui);
+            }
+        }
+    }
+
+    @FXML
+    public void shareFolderToSmb(ActionEvent actionEvent) {
+        showShareDialog(true);
+        refreshButtonClick(new ActionEvent());
+
+    }
+
+    private void showShareDialog(boolean doShare) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("./UserChoose.fxml"));
+            Parent root = loader.load();
+            Stage stage = new Stage();
+            stage.setTitle("Users");
+            stage.setScene(new Scene(root, 350, 160));
+            stage.initModality(Modality.APPLICATION_MODAL);
+            UserChooseController userChooseController = loader.getController();
+            if (doShare) {
+                userChooseController.setUsersList(client.getUsersList());
+            } else {
+                userChooseController.setUsersList(client.getSharedToUsersList());
+            }
+            userChooseController.setStage(stage);
+            stage.showAndWait();
+
+            UserInfo ui = userChooseController.getSelected();
+            if (ui != null) {
+                FileData fd = filesOnServerTable.getSelectionModel().getSelectedItem();
+                if (fd.isFolder()) {
+                    client.shareFolderTo(fd, ui, doShare ? Status.OK : Status.CANCEL);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    public void updateShares(MouseEvent mouseEvent) {
+        cbSharedFrom.getItems().clear();
+        if (!client.getFriendsList().isEmpty()) {
+            cbSharedFrom.getItems().add(new UserInfo(-1, "[USER_HOME]", true));
+        }
+
+        cbSharedFrom.getItems().addAll(client.getFriendsList());
+        System.out.println(client.getFriendsList());
+    }
+
+    public void unshareFolder(ActionEvent actionEvent) {
+        client.askMySharesList(filesOnServerTable.getSelectionModel().getSelectedItem());
+        showShareDialog(false);
+        client.getSharedToUsersList().clear();
+        refreshButtonClick(new ActionEvent());
+
     }
 }

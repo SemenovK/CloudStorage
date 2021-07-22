@@ -63,19 +63,20 @@
                 </Pane>
             <VBox maxHeight="1.7976931348623157E308" prefHeight="200.0" prefWidth="100.0" HBox.hgrow="ALWAYS">
                <children>
-                  <ComboBox fx:id="cbSharedFrom" onAction="#cbSharedFromAction" prefHeight="25.0" prefWidth="221.0" />
                   <TextField fx:id="tfServerPath">
                      <VBox.margin>
                         <Insets bottom="2.0" left="2.0" right="2.0" top="2.0" />
                      </VBox.margin>
                   </TextField>
+                  <ComboBox fx:id="cbSharedFrom" maxWidth="1.7976931348623157E308" onMouseClicked="#updateShares" onAction="#cbSharedFromAction" prefWidth="150.0" />
                       <TableView fx:id="filesOnServerTable" maxHeight="1.7976931348623157E308" onMouseClicked="#onFilesServerTableClick" prefHeight="432.0" prefWidth="268.0" VBox.vgrow="ALWAYS">
                      <contextMenu>
                         <ContextMenu fx:id="contextMenuServer">
                           <items>
                             <MenuItem mnemonicParsing="false" onAction="#createFolderOnServer" text="Create New Folder" />
                               <MenuItem mnemonicParsing="false" onAction="#downloadFromCloud" text="Get from Cloud" />
-<!--                              <MenuItem mnemonicParsing="false" text="Share to" />-->
+                              <MenuItem mnemonicParsing="false" onAction="#shareFolderToSmb" text="Share to..." />
+                              <MenuItem mnemonicParsing="false" onAction="#unshareFolder" text="Cancel sharing to..." />
                               <MenuItem mnemonicParsing="false" onAction="#deleteOnServer" text="Delete" />
       
                           </items>

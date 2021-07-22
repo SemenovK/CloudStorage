@@ -1,5 +1,7 @@
 package client;
 
+import constants.Commands;
+import constants.Status;
 import filesystem.FileInfo;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
@@ -13,13 +15,17 @@ import io.netty.handler.codec.serialization.ObjectEncoder;
 import lombok.extern.slf4j.Slf4j;
 import network.FileContent;
 import network.NetworkMessage;
+import objects.FileData;
+import objects.ShareFolderTo;
+import objects.UserInfo;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -32,6 +38,14 @@ public class Client {
     private UUID userToken;
     private boolean connected;
     private Path pathToSave;
+    private List<UserInfo> usersList;
+    private List<UserInfo> friendsList;
+
+    public List<UserInfo> getSharedToUsersList() {
+        return sharedToUsersList;
+    }
+
+    private List<UserInfo> sharedToUsersList;
 
     public void setAuthorised(boolean authorised) {
         this.authorised = authorised;
@@ -68,6 +82,22 @@ public class Client {
         return handler;
     }
 
+    public List<UserInfo> getUsersList() {
+        return usersList;
+    }
+
+    public List<UserInfo> getFriendsList() {
+        return friendsList;
+    }
+
+    public void setUsersList(List<UserInfo> usersList) {
+        this.usersList = usersList;
+    }
+
+    public void setFriendsList(List<UserInfo> friendsList) {
+        this.friendsList = friendsList;
+    }
+
     public Client() {
         handler = new ClientConnectionHandler(this);
         connected = false;
@@ -102,14 +132,16 @@ public class Client {
         });
 
         thread.setDaemon(true);
-
         thread.start();
+        usersList = new ArrayList<>();
+        friendsList = new ArrayList<>();
+        sharedToUsersList = new ArrayList<>();
 
     }
 
     public void sendObject(NetworkMessage nm) {
         nm.setUid(this.userToken);
-        System.out.println(this.userToken);
+        System.out.println("Sent:" + nm);
         mySocketChannel.writeAndFlush(nm);
     }
 
@@ -158,7 +190,7 @@ public class Client {
             }
             sendObject(fc);
         } else if (fileInfo.isFolder()) {
-            String parentPath = fileInfo.getFilePath().toString().replace(fileInfo.getFileName(),"");
+            String parentPath = fileInfo.getFilePath().toString().replace(fileInfo.getFileName(), "");
             try {
                 Files.walk(Paths.get(fileInfo.getFilePath().toString()))
                         .filter((e) -> !Files.isDirectory(e))
@@ -169,7 +201,6 @@ public class Client {
                                 FileContent fc = new FileContent(p, path.getFileName().toString(), (int) Files.size(path));
                                 fc.setFileContent(Files.readAllBytes(path));
                                 sendObject(fc);
-                                System.out.println(fc);
                             } catch (IOException e) {
                                 e.printStackTrace();
                             }
@@ -180,6 +211,51 @@ public class Client {
                 e.printStackTrace();
             }
         }
+    }
+
+    public void askUserList() {
+        NetworkMessage nm = new NetworkMessage(Commands.GET_USERS_LIST);
+        sendObject(nm);
+    }
+
+    public void askFriendsList() {
+        NetworkMessage nm = new NetworkMessage(Commands.GET_FRIENDS_LIST);
+        sendObject(nm);
+    }
+
+    public void shareFolderTo(FileData fd, UserInfo ui, Status shareOrNot) {
+        NetworkMessage<ShareFolderTo> nm = new NetworkMessage(Commands.SHARE_FOLDER);
+        nm.setContent(new ShareFolderTo(fd.getFileName(), ui.getUserId()));
+        nm.setStatus(shareOrNot);
+        sendObject(nm);
+    }
+
+    public void askMySharesList(FileData fd) {
+        if (fd.isFolder()) {
+            NetworkMessage nm = new NetworkMessage(Commands.GET_MY_USERSHARES_LIST);
+            nm.setExtraInfo(fd.getFileName());
+            sendObject(nm);
+        }
+
+    }
+
+    public void askFilesList(UserInfo ui) {
+        if (ui == null) {
+            sendObject(new NetworkMessage(Commands.GET_FILE_LIST));
+        } else if(ui.isThisUserIsCurrent()) {
+            sendObject(new NetworkMessage(Commands.GET_FILE_LIST));
+        }
+
+    }
+
+    public void getSharedFoldersListFromUser(UserInfo ui) {
+        if(!ui.isThisUserIsCurrent())
+        {
+            NetworkMessage<UserInfo> nm = new NetworkMessage(Commands.GO_INTO_SHARED_MODE);
+            nm.setContent(ui);
+            sendObject(nm);
+        }
+
     }
 }
 

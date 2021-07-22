@@ -6,11 +6,20 @@ import constants.Status;
 import java.io.Serializable;
 import java.util.UUID;
 
-public class NetworkMessage implements Serializable {
+public class NetworkMessage<T> implements Serializable {
     private Commands messagePurpose;
     private String extraInfo;
     private Status status;
     private UUID uid;
+    private T content;
+
+    public T getContent() {
+        return content;
+    }
+
+    public void setContent(T content) {
+        this.content = content;
+    }
 
     public Status getStatus() {
         return status;

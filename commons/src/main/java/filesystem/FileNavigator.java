@@ -10,14 +10,13 @@ import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
 public class FileNavigator implements Serializable {
 
-
+    String INITIAL_PATH = Paths.get("C:", "TMP").toString();
     LinkedList<FileToWrite> filesQueue;
     static LinkedList<FileToWrite> filesAwait = new LinkedList<>();
     Thread monitorThread;
@@ -25,16 +24,43 @@ public class FileNavigator implements Serializable {
     final private Path startingPoint;
     private Path currentFolder;
     private UUID uuid;
+    private int userid;
+    private int sharedUserId;
+
+    public int getSharedUserId() {
+        return sharedUserId;
+    }
+
+    public void setSharedUserId(int sharedUserId) {
+        this.sharedUserId = sharedUserId;
+    }
+
+    private boolean active;
+    private boolean sharedMode;
 
     public UUID getUuid() {
         return uuid;
     }
 
+    public int getUserid() {
+        return userid;
+    }
+
     public FileNavigator(UUID uid, int userID) {
-        startingPoint = Paths.get("C:", "TMP",Integer.toString(userID));
-        if(!startingPoint.toFile().exists()){
+        userid = userID;
+        startingPoint = Paths.get(INITIAL_PATH, Integer.toString(userid));
+        if (!startingPoint.toFile().exists()) {
             startingPoint.toFile().mkdirs();
         }
+        uuid = uid;
+        sharedMode = false;
+        init();
+    }
+
+    public FileNavigator(UUID uid, int userID, String sharedPath, String folderName) {
+        userid = userID;
+        this.sharedMode = true;
+        startingPoint = Paths.get(sharedPath, folderName);
         uuid = uid;
         init();
     }
@@ -45,10 +71,11 @@ public class FileNavigator implements Serializable {
     }
 
     private void init() {
+        this.active = true;
         filesQueue = new LinkedList<>();
         currentFolder = startingPoint;
         monitorThread = new Thread(() -> {
-            while (true) {
+            while (this.active) {
 
                 if (!filesQueue.isEmpty()) {
                     FileToWrite fileToWrite = filesQueue.peek();
@@ -76,13 +103,18 @@ public class FileNavigator implements Serializable {
     public List<FileInfo> getFilesListFromCurrent() throws IOException {
         List<FileInfo> fileInfoList = new ArrayList<>();
         for (Path p : Files.list(currentFolder).collect(Collectors.toList())) {
-            fileInfoList.add(new FileInfo(p));
+            FileInfo fileInfo = new FileInfo(p);
+            fileInfoList.add(fileInfo);
         }
         return fileInfoList;
     }
 
     public void goInto(String folderName) {
         currentFolder = Paths.get(currentFolder.toString(), folderName);
+    }
+
+    public boolean isSharedMode() {
+        return sharedMode;
     }
 
     public void goUp() {
@@ -99,10 +131,14 @@ public class FileNavigator implements Serializable {
     }
 
 
+    public void setActive(boolean active) {
+        this.active = active;
+    }
+
     public synchronized void createAndWriteToFileOnCurrent(Path path, String fileName, byte[] fileContent) {
         Path newFile = Paths.get(path.toString(), fileName);
         try {
-            if(!Files.exists(path)){
+            if (!Files.exists(path)) {
                 path.toFile().mkdirs();
             }
             Files.write(newFile, fileContent);
@@ -114,8 +150,9 @@ public class FileNavigator implements Serializable {
     public synchronized void putFileToQueue(String filename, byte[] fileContent) {
         filesQueue.add(new FileToWrite(this.uuid, this.currentFolder, filename, fileContent));
     }
+
     public synchronized void putFileToQueue(FileContent fc) {
-        filesQueue.add(new FileToWrite(this.uuid, Paths.get(this.currentFolder.toString(),fc.getFilePath()), fc.getFileName(), fc.getFileContent()));
+        filesQueue.add(new FileToWrite(this.uuid, Paths.get(this.currentFolder.toString(), fc.getFilePath()), fc.getFileName(), fc.getFileContent()));
     }
 
     public void putFileToQueue(FileToWrite f) {
@@ -141,7 +178,7 @@ public class FileNavigator implements Serializable {
                     Files.delete(file);
                 }
             } catch (IOException e) {
-                log.error("Error during delete - "+file.toString());
+                log.error("Error during delete - " + file.toString());
 
             }
         }
