@@ -1,6 +1,5 @@
 package client;
 
-import javafx.application.Platform;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -8,18 +7,14 @@ import javafx.fxml.Initializable;
 import javafx.scene.control.Button;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
-import javafx.scene.control.TableColumn;
 import javafx.scene.input.MouseEvent;
 import javafx.stage.Stage;
 import objects.UserInfo;
 
 import java.net.URL;
-import java.util.Collections;
-import java.util.List;
 import java.util.ResourceBundle;
 
 public class UserChooseController implements Initializable {
-    private List<UserInfo> usersList;
     private UserInfo selectedUser;
     private Stage stage;
 
@@ -45,11 +40,6 @@ public class UserChooseController implements Initializable {
                 }
             }
         });
-        Platform.runLater(()->{
-            if(usersList!=null){
-                lwUsers.getItems().addAll(usersList);
-            }
-        });
 
 
 
@@ -67,8 +57,8 @@ public class UserChooseController implements Initializable {
         stage.close();
     }
 
-    public void setUsersList(List<UserInfo> usersList) {
-        this.usersList = usersList;
+    public void setUsersList(ObservableList<UserInfo> usersList) {
+        lwUsers.setItems(usersList);
     }
 
     public UserInfo getSelected() {

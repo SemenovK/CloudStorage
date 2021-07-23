@@ -19,8 +19,6 @@ public class ServerConnectionHandler extends ChannelInboundHandlerAdapter {
 
 
     private Server parentHandler;
-    private DBService dbService;
-
     private Map<UUID, FileNavigator> usersPlacement;
 
     public ServerConnectionHandler(Server parentHandler) {
@@ -46,7 +44,6 @@ public class ServerConnectionHandler extends ChannelInboundHandlerAdapter {
         }
 
 
-        System.out.println(nm);
         if (nm.getMessagePurpose() == Commands.AUTHORISATION) {
             parentHandler.authUser(nm);
         } else if (nm.getMessagePurpose() == Commands.GET_FILE_LIST) {
@@ -96,7 +93,4 @@ public class ServerConnectionHandler extends ChannelInboundHandlerAdapter {
 
     }
 
-    public void setDBService(DBService dbService) {
-        this.dbService = dbService;
-    }
 }

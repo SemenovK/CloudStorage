@@ -20,19 +20,8 @@ public class NetworkAnswer<T> extends NetworkMessage {
             this.currentPart = currentPart;
     }
 
-
-
     public Commands getQuestionMessageType() {
         return questionMessageType;
-    }
-
-    @Override
-    public String toString() {
-        return "NetworkAnswer{" +
-                "questionMessageType=" + questionMessageType +
-                ", answer=" + answer +
-                ", currentPart=" + currentPart +
-                '}';
     }
 
     public void setQuestionMessageType(Commands questionMessageType) {
@@ -46,4 +35,15 @@ public class NetworkAnswer<T> extends NetworkMessage {
     public void setAnswer(T answer) {
         this.answer = answer;
     }
+
+    @Override
+    public String toString() {
+        return "NetworkAnswer{" +
+                "questionMessageType=" + questionMessageType +
+                ", answer=" + answer +
+                ", currentPart=" + currentPart +
+                '}';
+    }
+
+
 }

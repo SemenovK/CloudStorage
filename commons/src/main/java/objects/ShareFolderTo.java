@@ -14,6 +14,9 @@ public class ShareFolderTo implements Serializable {
     public String getFolderName() {
         return folderName;
     }
+    public int getToUserId() {
+        return toUserId;
+    }
 
     @Override
     public String toString() {
@@ -23,7 +26,5 @@ public class ShareFolderTo implements Serializable {
                 '}';
     }
 
-    public int getToUserId() {
-        return toUserId;
-    }
+
 }

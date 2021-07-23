@@ -118,8 +118,6 @@ public class FileNavigator implements Serializable {
     }
 
     public void goUp() {
-        System.out.println(currentFolder);
-        System.out.println(startingPoint);
         if (currentFolder.equals(startingPoint))
             return;
 
@@ -128,11 +126,6 @@ public class FileNavigator implements Serializable {
 
     public boolean isOnTop() {
         return startingPoint.equals(currentFolder);
-    }
-
-
-    public void setActive(boolean active) {
-        this.active = active;
     }
 
     public synchronized void createAndWriteToFileOnCurrent(Path path, String fileName, byte[] fileContent) {
@@ -145,10 +138,6 @@ public class FileNavigator implements Serializable {
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    public synchronized void putFileToQueue(String filename, byte[] fileContent) {
-        filesQueue.add(new FileToWrite(this.uuid, this.currentFolder, filename, fileContent));
     }
 
     public synchronized void putFileToQueue(FileContent fc) {

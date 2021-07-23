@@ -4,13 +4,6 @@ import constants.Commands;
 
 public class UserData extends NetworkMessage{
 
-    public void setUserLogin(String userLogin) {
-        this.userLogin = userLogin;
-    }
-
-    public void setUserPassword(String userPassword) {
-        this.userPassword = userPassword;
-    }
 
     private String userLogin;
     private String userPassword;

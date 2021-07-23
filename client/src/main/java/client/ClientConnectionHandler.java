@@ -7,8 +7,6 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import javafx.application.Platform;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.TableView;
 import lombok.extern.slf4j.Slf4j;
 import network.FileContent;
 import network.NetworkMessage;
@@ -18,9 +16,6 @@ import objects.UserInfo;
 
 @Slf4j
 public class ClientConnectionHandler extends ChannelInboundHandlerAdapter {
-    private TableView<FileData> filesOnServerTable;
-
-
 
     private Client parentHandle;
 
@@ -38,6 +33,8 @@ public class ClientConnectionHandler extends ChannelInboundHandlerAdapter {
                     parentHandle.setUserToken(answer.getUid());
                     parentHandle.setConnected(true);
                     parentHandle.setAuthorised(true);
+
+
                 }
                 if (answer.getAnswer().equals(Status.DENIED)) {
                     parentHandle.setUserToken(null);
@@ -49,12 +46,14 @@ public class ClientConnectionHandler extends ChannelInboundHandlerAdapter {
 
         }
         if (parentHandle.isConnected()) {
-            if (answer.getQuestionMessageType().equals(Commands.GET_FILE_LIST)) {
+            if (answer.getQuestionMessageType().equals(Commands.GET_FILE_LIST)
+                    || answer.getQuestionMessageType().equals(Commands.GO_INTO_SHARED_MODE)
+                    || answer.getQuestionMessageType().equals(Commands.GET_FILE_SHAREDLIST)) {
                 if (answer.getCurrentPart() == 0) {
-                    filesOnServerTable.getItems().clear();
+                    parentHandle.getObservableFileList().clear();
                 }
-                filesOnServerTable.getItems().add((FileData) answer.getAnswer());
-                filesOnServerTable.refresh();
+                parentHandle.getObservableFileList().add((FileData) answer.getAnswer());
+
             } else if (answer.getQuestionMessageType().equals(Commands.FILE_DATA)) {
                 Status s = (Status) answer.getAnswer();
                 if (s.equals(Status.FILE_EXISTS)) {
@@ -77,40 +76,31 @@ public class ClientConnectionHandler extends ChannelInboundHandlerAdapter {
 
             } else if (answer.getQuestionMessageType().equals(Commands.GET_USERS_LIST)) {
                 if (answer.getCurrentPart() == 0) {
-                    parentHandle.getUsersList().clear();
+                    parentHandle.getObservableUsersList().clear();
                 }
                 UserInfo ui = (UserInfo) answer.getAnswer();
                 if (!ui.isThisUserIsCurrent())
-                    parentHandle.getUsersList().add(ui);
+                    parentHandle.getObservableUsersList().add(ui);
 
             } else if (answer.getQuestionMessageType().equals(Commands.GET_FRIENDS_LIST)) {
-                if (answer.getCurrentPart() == 0) {
-                    parentHandle.getFriendsList().clear();
-                }
-                System.out.println(answer);
-                parentHandle.getFriendsList().add((UserInfo) answer.getAnswer());
+                    if (answer.getCurrentPart() == 0) {
+                        //parentHandle.getObservableFriendsList().clear();
+                    }
+                    parentHandle.getObservableFriendsList().add((UserInfo) answer.getAnswer());
+
 
             } else if (answer.getQuestionMessageType().equals(Commands.GET_MY_USERSHARES_LIST)) {
                 if (answer.getCurrentPart() == 0) {
-                    parentHandle.getSharedToUsersList().clear();
+                    parentHandle.getObservableSharedToUsersList().clear();
                 }
-                parentHandle.getSharedToUsersList().add((UserInfo) answer.getAnswer());
-
-            }else if (answer.getQuestionMessageType().equals(Commands.GO_INTO_SHARED_MODE)) {
-                if (answer.getCurrentPart() == 0) {
-                    filesOnServerTable.getItems().clear();
-                }
-                filesOnServerTable.getItems().add((FileData) answer.getAnswer());
-                filesOnServerTable.refresh();
-
-            } else if (answer.getQuestionMessageType().equals(Commands.GET_FILE_SHAREDLIST)) {
-                if (answer.getCurrentPart() == 0) {
-                    filesOnServerTable.getItems().clear();
-                }
-                filesOnServerTable.getItems().add((FileData) answer.getAnswer());
-                filesOnServerTable.refresh();
+                parentHandle.getObservableSharedToUsersList().add((UserInfo) answer.getAnswer());
 
             }
+            UserInfo ui = new UserInfo(-1, "[USER_HOME]", true);
+            if(!parentHandle.getObservableFriendsList().contains(ui)){
+                parentHandle.getObservableFriendsList().add(ui);
+            }
+
         }
 
     }
@@ -121,11 +111,7 @@ public class ClientConnectionHandler extends ChannelInboundHandlerAdapter {
         parentHandle.setConnected(false);
         log.error(cause.getMessage());
 
-
     }
 
-    public void setFileListContainer(TableView<FileData> container) {
-        filesOnServerTable = container;
-    }
 
 }

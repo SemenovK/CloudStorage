@@ -18,10 +18,6 @@ public class FileData implements Serializable {
         return isVirtual;
     }
 
-    public void setVirtual(boolean virtual) {
-        isVirtual = virtual;
-    }
-
     public boolean isSharedFolder() {
         return sharedFolder;
     }
@@ -34,7 +30,6 @@ public class FileData implements Serializable {
         return fileName;
     }
 
-
     public long getFileSize() {
         return fileSize;
     }
@@ -43,15 +38,16 @@ public class FileData implements Serializable {
         return isFolder;
     }
 
+    public int getFolderID() {
+        return folderID;
+    }
+
     public FileData(String fileName, long fileSize, boolean isFolder) {
         this.fileName = fileName;
         this.fileSize = fileSize;
         this.isFolder = isFolder;
     }
 
-    public int getFolderID() {
-        return folderID;
-    }
 
     public FileData(String fileName, int folderID) {
         this.fileName = fileName;

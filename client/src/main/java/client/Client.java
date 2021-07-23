@@ -12,6 +12,9 @@ import io.netty.handler.codec.serialization.ClassResolvers;
 import io.netty.handler.codec.serialization.ObjectDecoder;
 import io.netty.handler.codec.serialization.ObjectEncoder;
 
+import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
+import javafx.collections.ObservableList;
 import lombok.extern.slf4j.Slf4j;
 import network.FileContent;
 import network.NetworkMessage;
@@ -39,13 +42,25 @@ public class Client {
     private boolean connected;
     private Path pathToSave;
     private List<UserInfo> usersList;
-    private List<UserInfo> friendsList;
-
-    public List<UserInfo> getSharedToUsersList() {
-        return sharedToUsersList;
-    }
+    private ObservableList<UserInfo> observableUsersList;
 
     private List<UserInfo> sharedToUsersList;
+    private ObservableList<UserInfo> observableSharedToUsersList;
+
+
+    private List<UserInfo> friendsList;
+    private ObservableList<UserInfo> observableFriendsList;
+
+    private List<FileData> fileInfoList;
+    private ObservableList<FileData> observableFileList ;
+
+
+    public ObservableList<UserInfo> getObservableUsersList() {
+        return observableUsersList;
+    }
+    public ObservableList<UserInfo> getObservableSharedToUsersList() {
+        return observableSharedToUsersList;
+    }
 
     public void setAuthorised(boolean authorised) {
         this.authorised = authorised;
@@ -82,20 +97,13 @@ public class Client {
         return handler;
     }
 
-    public List<UserInfo> getUsersList() {
-        return usersList;
+
+    public ObservableList<UserInfo> getObservableFriendsList() {
+        return observableFriendsList;
     }
 
-    public List<UserInfo> getFriendsList() {
-        return friendsList;
-    }
-
-    public void setUsersList(List<UserInfo> usersList) {
-        this.usersList = usersList;
-    }
-
-    public void setFriendsList(List<UserInfo> friendsList) {
-        this.friendsList = friendsList;
+    public ObservableList<FileData> getObservableFileList() {
+        return observableFileList;
     }
 
     public Client() {
@@ -134,9 +142,17 @@ public class Client {
         thread.setDaemon(true);
         thread.start();
         usersList = new ArrayList<>();
-        friendsList = new ArrayList<>();
-        sharedToUsersList = new ArrayList<>();
+        observableUsersList = FXCollections.observableList(usersList);
 
+        sharedToUsersList = new ArrayList<>();
+        observableSharedToUsersList = FXCollections.observableList(sharedToUsersList);
+
+
+        friendsList = new ArrayList<>();
+        observableFriendsList = FXCollections.observableList(friendsList);
+
+        fileInfoList = new ArrayList<>();
+        observableFileList = FXCollections.observableList(fileInfoList);
     }
 
     public void sendObject(NetworkMessage nm) {
@@ -178,6 +194,7 @@ public class Client {
             }
         }
     }
+
 
     public void sendFile(FileInfo fileInfo) {
 

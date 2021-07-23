@@ -10,14 +10,13 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 
 public class FileInfo implements Serializable {
+
     public enum FileType {
         FILE("F"), DIRECTORY("D");
         private String name;
-
         FileType(String str) {
             name = str;
         }
-
         public String getName() {
             return name;
         }
@@ -48,7 +47,7 @@ public class FileInfo implements Serializable {
             try {
                 this.lastModifiedDate = LocalDateTime.ofInstant(Files.getLastModifiedTime(path).toInstant(), ZoneId.systemDefault());
             } catch (IOException e) {
-            this.lastModifiedDate = LocalDateTime.of(1900,01,1,0,0,0,0);
+                this.lastModifiedDate = LocalDateTime.of(1900,01,1,0,0,0,0);
             }
     }
 
@@ -60,6 +59,7 @@ public class FileInfo implements Serializable {
     public FileType getFileType() {
         return fileType;
     }
+
     public boolean isFolder(){
         return fileType.equals(FileType.DIRECTORY);
     }

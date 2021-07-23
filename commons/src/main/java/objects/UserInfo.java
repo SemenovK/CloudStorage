@@ -1,6 +1,7 @@
 package objects;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 public class UserInfo implements Serializable {
     private int userId;
@@ -13,8 +14,17 @@ public class UserInfo implements Serializable {
         this.thisUserIsCurrent = thisUserIsCurrent;
     }
 
-    public int getUserId() {
-        return userId;
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        UserInfo userInfo = (UserInfo) o;
+        return userId == userInfo.userId && thisUserIsCurrent == userInfo.thisUserIsCurrent && Objects.equals(userName, userInfo.userName);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(userId, userName, thisUserIsCurrent);
     }
 
     @Override
@@ -29,8 +39,10 @@ public class UserInfo implements Serializable {
     public String getUserName() {
         return userName;
     }
-
     public boolean isThisUserIsCurrent() {
         return thisUserIsCurrent;
+    }
+    public int getUserId() {
+        return userId;
     }
 }

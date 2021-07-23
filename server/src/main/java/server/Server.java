@@ -37,16 +37,18 @@ public class Server {
     private DBService dbService;
     private Map<UUID, FileNavigator> usersPlacement;
     private List<FileToWrite> listOfProcessingFiles;
-    private SocketChannel serverSocketChannel;
+
 
     private EventLoopGroup auth;
     private EventLoopGroup worker;
     private ServerConnectionHandler serverConnectionHandler;
+    private SocketChannel serverSocketChannel;
 
     public Server() {
         usersPlacement = new HashMap<>();
         serverConnectionHandler = new ServerConnectionHandler(this);
         listOfProcessingFiles = new LinkedList<>();
+
         Thread t = new Thread(() -> {
             log.info("FileConflict Monitor started...");
             while (true) {
@@ -126,7 +128,6 @@ public class Server {
                 ChannelFuture channelFuture = serverBootstrap.bind(20115).sync();
                 log.info("Server started");
                 dbService = new DBService();
-                serverConnectionHandler.setDBService(dbService);
                 dbService.start();
                 log.info("Connected to database");
 
@@ -330,7 +331,6 @@ public class Server {
         FileNavigator fn = usersPlacement.get(nm.getUid());
         ShareFolderTo sft = (ShareFolderTo) nm.getContent();
         Status status = nm.getStatus();
-        System.out.println(sft);
         if (status.equals(Status.OK)) {
             dbService.addSharedFolder(fn.getUserid(), sft.getToUserId(), sft.getFolderName(), fn.getCurrentFolder().toString());
         } else if (status.equals(Status.CANCEL)) {
@@ -419,7 +419,6 @@ public class Server {
         FileNavigator fn = usersPlacement.get(nm.getUid());
         try {
 
-            System.out.println(nm);
             List<FileInfo> fileInfo = fn.getFilesListFromCurrent();
             int totalParts = fileInfo.size() + (fn.isOnTop() ? 0 : 1);
             NetworkAnswer na = new NetworkAnswer<FileData>();
@@ -428,7 +427,6 @@ public class Server {
             na.setQuestionMessageType(nm.getMessagePurpose());
             na.setAnswer(new FileData("..", -2, true));
             serverSocketChannel.writeAndFlush(na);
-
 
             int partnum = 1;
 

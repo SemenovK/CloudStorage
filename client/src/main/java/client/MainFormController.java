@@ -7,6 +7,9 @@ import filesystem.FileInfo;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
+import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
+import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
@@ -62,22 +65,17 @@ public class MainFormController implements Initializable {
     };
 
     private Client client;
-    private boolean sharedMode;
     private Scene scene;
 
-    public void setScene(Scene scene) {
-        this.scene = scene;
-    }
-
-    public Client getClient() {
-        return client;
-    }
+    private UserInfo userInfo;
 
     @FXML
     private ComboBox<DiskInfo> diskComboBox;
 
     @FXML
     private TableView<FileInfo> filesTable;
+    private List<FileInfo> filesList;
+    private ObservableList<FileInfo> observableFilesList;
 
     @FXML
     private TextField currentPath;
@@ -94,9 +92,28 @@ public class MainFormController implements Initializable {
     @FXML
     private TextField tfServerPath;
     @FXML
-    private ComboBox<UserInfo> cbSharedFrom;
+    private ComboBox<UserInfo> cbAvialibeUsersShares;
     @FXML
     private ContextMenu contextMenuServer;
+
+    @FXML
+    private MenuItem miCreateFolder;
+    @FXML
+    private MenuItem miDownloadFromCloud;
+    @FXML
+    private MenuItem miShareTo;
+    @FXML
+    private MenuItem miUnShare;
+    @FXML
+    private MenuItem miDelete;
+
+    public void setScene(Scene scene) {
+        this.scene = scene;
+    }
+
+    public Client getClient() {
+        return client;
+    }
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
@@ -137,9 +154,10 @@ public class MainFormController implements Initializable {
 
         });
 
-        TableColumn<FileInfo, String> fileTypeColumn = new TableColumn<>();
-        fileTypeColumn.setCellValueFactory(param -> new SimpleStringProperty(param.getValue().getFileType().getName()));
-        fileTypeColumn.setPrefWidth(25);
+
+        filesList = new ArrayList<>();
+        observableFilesList = FXCollections.observableList(filesList);
+        filesTable.setItems(observableFilesList);
 
 
         TableColumn<FileInfo, String> fileNameColumn = new TableColumn<>("Name");
@@ -172,7 +190,7 @@ public class MainFormController implements Initializable {
 
         TableColumn<FileInfo, Long> fileSizeColumn = new TableColumn<>("Size");
         fileSizeColumn.setCellValueFactory(param -> new SimpleObjectProperty(param.getValue().getFileSize()));
-        fileSizeColumn.setPrefWidth(150);
+        fileSizeColumn.setPrefWidth(100);
 
 
         fileSizeColumn.setCellFactory(column -> new TableCell<FileInfo, Long>() {
@@ -199,8 +217,8 @@ public class MainFormController implements Initializable {
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         TableColumn<FileInfo, String> lastModifyDateColumn = new TableColumn<>("Last Modify Date");
         lastModifyDateColumn.setCellValueFactory(param -> new SimpleStringProperty(param.getValue().getLastModifiedDate().format(dtf)));
-        lastModifyDateColumn.setPrefWidth(150);
-        filesTable.getColumns().addAll(fileTypeColumn, fileNameColumn, fileSizeColumn, lastModifyDateColumn);
+        lastModifyDateColumn.setPrefWidth(70);
+        filesTable.getColumns().addAll(fileNameColumn, fileSizeColumn, lastModifyDateColumn);
 
         TableColumn<FileData, String> fileNameServerColumn = new TableColumn<>("Name");
         fileNameServerColumn.setCellValueFactory(param -> new SimpleStringProperty(param.getValue().getFileName()));
@@ -238,7 +256,6 @@ public class MainFormController implements Initializable {
         fileSizeServerColumn.setCellValueFactory(param -> new SimpleObjectProperty(param.getValue().getFileSize()));
         fileSizeServerColumn.setPrefWidth(80);
 
-
         fileSizeServerColumn.setCellFactory(column -> new TableCell<FileData, Long>() {
             @Override
             protected void updateItem(Long item, boolean empty) {
@@ -265,7 +282,7 @@ public class MainFormController implements Initializable {
         updateFileList(Paths.get(System.getProperty("user.home")).toAbsolutePath().normalize());
 
 
-        cbSharedFrom.setButtonCell(new ListCell<UserInfo>() {
+        cbAvialibeUsersShares.setButtonCell(new ListCell<UserInfo>() {
             @Override
             protected void updateItem(UserInfo item, boolean empty) {
                 super.updateItem(item, empty);
@@ -283,7 +300,8 @@ public class MainFormController implements Initializable {
 
             }
         });
-        cbSharedFrom.setCellFactory(row -> new ComboBoxListCell<UserInfo>() {
+
+        cbAvialibeUsersShares.setCellFactory(row -> new ComboBoxListCell<UserInfo>() {
             @Override
             public void updateItem(UserInfo item, boolean empty) {
                 super.updateItem(item, empty);
@@ -300,8 +318,7 @@ public class MainFormController implements Initializable {
             }
 
         });
-        cbSharedFrom.getItems().clear();
-        tfServerPath.setText(cbSharedFrom.getButtonCell().getText());
+
 
     }
 
@@ -310,7 +327,7 @@ public class MainFormController implements Initializable {
         synchronizePathData(path);
         try {
             for (Path p : Files.list(path).collect(Collectors.toList())) {
-                filesTable.getItems().add(new FileInfo(p));
+               observableFilesList.add(new FileInfo(p));
             }
             filesTable.sort();
         } catch (IOException e) {
@@ -322,7 +339,7 @@ public class MainFormController implements Initializable {
     private void synchronizePathData(Path path) {
         currentPath.clear();
         currentPath.setText(path.normalize().toAbsolutePath().toString());
-        filesTable.getItems().clear();
+        observableFilesList.clear();
         for (DiskInfo di : diskComboBox.getItems()) {
             if (di.getFile().toPath().getRoot().equals(path.getRoot())) {
                 diskComboBox.setValue(di);
@@ -391,20 +408,10 @@ public class MainFormController implements Initializable {
         setConnectedMode(client.isConnected());
         Path path = Paths.get(currentPath.getText());
         updateFileList(path);
-        filesOnServerTable.getItems().clear();
-        client.getHandler().setFileListContainer(filesOnServerTable);
-        UserInfo ui = cbSharedFrom.getSelectionModel().getSelectedItem();
+
+        UserInfo ui = cbAvialibeUsersShares.getSelectionModel().getSelectedItem();
         client.askFilesList(ui);
         client.askUserList();
-        client.askFriendsList();
-
-
-        cbSharedFrom.getItems().clear();
-        cbSharedFrom.getItems().addAll(client.getFriendsList());
-        cbSharedFrom.setValue(ui);
-        tfServerPath.setText("[USER_HOME]");
-
-
     }
 
     private void connectAndAuth() {
@@ -444,21 +451,34 @@ public class MainFormController implements Initializable {
                             if (client.isAuthorised()) {
                                 setConnectedMode(true);
                                 ((Stage) scene.getWindow()).setTitle("Cloud storage. User [" + ud.getUserLogin() + "] connected.");
-                                refreshButtonClick(new ActionEvent());
                                 addEventToList("Connected");
+                                client.askFriendsList();
+                                while (true) {
+                                    if (!client.getObservableFriendsList().isEmpty()) {
+                                        cbAvialibeUsersShares.setItems(client.getObservableFriendsList());
+                                        cbAvialibeUsersShares.setValue(userInfo);
+                                        cbAvialibeUsersShares.getSelectionModel().selectFirst();
+                                        filesOnServerTable.setItems(client.getObservableFileList());
+                                        cbAvialibeUsersSharesAction(new ActionEvent());
+                                        break;
+                                    }
+                                    try {
+                                        Thread.sleep(10);
+                                    } catch (InterruptedException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
                                 break;
                             } else {
                                 setConnectedMode(false);
                                 addEventToList("Connection denied");
-
                                 client.close();
                                 break;
                             }
                         }
                     }
-
-
                 });
+
 
             }
 
@@ -491,22 +511,18 @@ public class MainFormController implements Initializable {
     public void onFilesServerTableClick(MouseEvent mouseEvent) {
         if (mouseEvent.getClickCount() == 2) {
             FileData fd = filesOnServerTable.getSelectionModel().getSelectedItem();
-          if (fd.isFolder() && !fd.isVirtual()) {
+            if (fd.isFolder() && !fd.isVirtual()) {
 
                 NetworkMessage nm = new NetworkMessage(Commands.GET_FILE_LIST);
                 nm.setExtraInfo(fd.getFileName());
                 client.sendObject(nm);
-                filesOnServerTable.getItems().clear();
-                client.getHandler().setFileListContainer(filesOnServerTable);
 
                 if (fd.getFileSize() == -2) {
                     tfServerPath.setText(Paths.get(tfServerPath.getText()).getParent().toString());
                 } else {
                     tfServerPath.setText(Paths.get(tfServerPath.getText(), fd.getFileName()).toString());
                 }
-            } else if((fd.isFolder() && fd.isVirtual()))
-
-            {
+            } else if ((fd.isFolder() && fd.isVirtual())) {
                 NetworkMessage nm = new NetworkMessage(Commands.GET_FILE_SHAREDLIST);
                 nm.setExtraInfo(Integer.toString(fd.getFolderID()));
                 client.sendObject(nm);
@@ -517,7 +533,6 @@ public class MainFormController implements Initializable {
                     tfServerPath.setText(Paths.get(tfServerPath.getText(), fd.getFileName()).toString());
                 }
             }
-
 
         }
 
@@ -562,7 +577,6 @@ public class MainFormController implements Initializable {
             List<FileData> fi = filesOnServerTable.getSelectionModel().getSelectedItems();
 
             for (FileData f : fi) {
-                //  if (!f.isFolder()) {
                 addEventToList("File " + f.getFileName() + " downloading attempt.");
                 NetworkMessage nm = new NetworkMessage(Commands.FILE_DOWNLOAD);
                 nm.setExtraInfo(f.getFileName());
@@ -605,17 +619,15 @@ public class MainFormController implements Initializable {
     }
 
     @FXML
-    public void cbSharedFromAction(ActionEvent actionEvent) {
-        UserInfo ui = cbSharedFrom.getSelectionModel().getSelectedItem();
-        tfServerPath.setText(cbSharedFrom.getButtonCell().getText());
+    public void cbAvialibeUsersSharesAction(ActionEvent actionEvent) {
+        UserInfo ui = cbAvialibeUsersShares.getSelectionModel().getSelectedItem();
+        tfServerPath.setText(cbAvialibeUsersShares.getButtonCell().getText());
         if (ui != null) {
             if (ui.isThisUserIsCurrent()) {
                 NetworkMessage nm = new NetworkMessage(Commands.GO_INTO_NORMAL_MODE);
                 client.sendObject(nm);
-                this.sharedMode = false;
                 client.askFilesList(ui);
             } else {
-                this.sharedMode = true;
                 client.getSharedFoldersListFromUser(ui);
             }
         }
@@ -623,9 +635,8 @@ public class MainFormController implements Initializable {
 
     @FXML
     public void shareFolderToSmb(ActionEvent actionEvent) {
+        client.askUserList();
         showShareDialog(true);
-        refreshButtonClick(new ActionEvent());
-
     }
 
     private void showShareDialog(boolean doShare) {
@@ -638,9 +649,9 @@ public class MainFormController implements Initializable {
             stage.initModality(Modality.APPLICATION_MODAL);
             UserChooseController userChooseController = loader.getController();
             if (doShare) {
-                userChooseController.setUsersList(client.getUsersList());
+                userChooseController.setUsersList(client.getObservableUsersList());
             } else {
-                userChooseController.setUsersList(client.getSharedToUsersList());
+                userChooseController.setUsersList(client.getObservableSharedToUsersList());
             }
             userChooseController.setStage(stage);
             stage.showAndWait();
@@ -658,21 +669,28 @@ public class MainFormController implements Initializable {
 
     }
 
-    public void updateShares(MouseEvent mouseEvent) {
-        cbSharedFrom.getItems().clear();
-        if (!client.getFriendsList().isEmpty()) {
-            cbSharedFrom.getItems().add(new UserInfo(-1, "[USER_HOME]", true));
-        }
-
-        cbSharedFrom.getItems().addAll(client.getFriendsList());
-        System.out.println(client.getFriendsList());
-    }
-
     public void unshareFolder(ActionEvent actionEvent) {
         client.askMySharesList(filesOnServerTable.getSelectionModel().getSelectedItem());
         showShareDialog(false);
-        client.getSharedToUsersList().clear();
-        refreshButtonClick(new ActionEvent());
+    }
 
+    @FXML
+    public void paintContextMenu(WindowEvent windowEvent) {
+        boolean isVirtual = filesOnServerTable.getSelectionModel().getSelectedItem().isVirtual();
+        String goUoSymbol = filesOnServerTable.getSelectionModel().getSelectedItem().getFileName();
+        if (isVirtual || goUoSymbol.equals("..")) {
+            miCreateFolder.setDisable(true);
+            miDownloadFromCloud.setDisable(true);
+            miShareTo.setDisable(true);
+            miUnShare.setDisable(true);
+            miDelete.setDisable(true);
+        } else {
+
+            miCreateFolder.setDisable(false);
+            miDownloadFromCloud.setDisable(false);
+            miShareTo.setDisable(false);
+            miUnShare.setDisable(false);
+            miDelete.setDisable(false);
+        }
     }
 }
