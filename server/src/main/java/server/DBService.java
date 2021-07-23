@@ -177,10 +177,10 @@ public class DBService {
         try {
             query = connection.prepareStatement("SELECT count(1) as count from users_shared_folder where userid = ? and folder = ?");
             query.setInt(1, userid);
-            query.setString(2,foldername);
+            query.setString(2, foldername);
             resultSet = query.executeQuery();
-            while (resultSet.next()){
-                return resultSet.getInt(1)>0;
+            while (resultSet.next()) {
+                return resultSet.getInt(1) > 0;
             }
         } catch (SQLException throwables) {
             throwables.printStackTrace();
@@ -221,4 +221,21 @@ public class DBService {
         }
         return resultSet;
     }
+
+    public void add_user(String userLogin, String userPassword, String userName) {
+        PreparedStatement query;
+        try {
+            query = connection.prepareStatement("INSERT INTO users(login, password ,username) VALUES (?,?,?);");
+            query.setString(1, userLogin);
+            query.setString(2, userPassword);
+            query.setString(3, userName);
+
+            int result = query.executeUpdate();
+
+            System.out.println("Added "+ result+" records");
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
+    }
+
 }

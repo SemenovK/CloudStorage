@@ -98,8 +98,10 @@ public class Server {
                 server.stop();
                 break;
             }
-            if (commandString.startsWith("/userAdd")) {
-                //todo
+            if (commandString.startsWith("/useradd")) {
+                String[] params;
+                params = commandString.split(" ",4);
+                server.dbService.add_user(params[1], params[2],params[3]);
             }
         }
         scanner.close();
