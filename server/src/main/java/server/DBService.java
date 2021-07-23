@@ -11,7 +11,7 @@ import java.sql.*;
 public class DBService {
     static final String DB_URL = "jdbc:mysql://localhost:3306/cloudstorage?useSSL=false";
     static final String DB_USER = "root";
-    static final String DB_PASS = "dikop";
+    static final String DB_PASS = "12345";
 
     static {
         try {
