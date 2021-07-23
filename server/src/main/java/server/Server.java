@@ -170,13 +170,18 @@ public class Server {
     public synchronized void sendFile(String fileName, UUID uuid) {
         FileNavigator fn = getUsersPlacement().get(uuid);
         Path p = Paths.get(fn.getCurrentFolder().toString(), fileName);
-        try {
-            Files.walk(Paths.get(fn.getCurrentFolder().toString()))
-                    .filter((e) -> !Files.isDirectory(e))
-                    .forEach(path -> sendFile(path, fn));
-        } catch (IOException e) {
-            e.printStackTrace();
+        if(p.toFile().isDirectory()){
+            try {
+                Files.walk(Paths.get(fn.getCurrentFolder().toString(),fileName))
+                        .filter((e) -> !Files.isDirectory(e))
+                        .forEach(path -> sendFile(path, fn));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } else {
+            sendFile(p,fn);
         }
+
 
 
     }
@@ -238,7 +243,7 @@ public class Server {
                 String username = result.getString(2);
                 answer.setAnswer(new UserInfo(userId, username, userId == fn.getUserid()));
                 serverSocketChannel.writeAndFlush(answer);
-                System.out.println(answer);
+
             }
         } catch (SQLException throwables) {
             log.error(throwables.getMessage());

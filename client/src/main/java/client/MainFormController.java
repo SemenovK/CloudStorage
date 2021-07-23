@@ -327,7 +327,7 @@ public class MainFormController implements Initializable {
         synchronizePathData(path);
         try {
             for (Path p : Files.list(path).collect(Collectors.toList())) {
-               observableFilesList.add(new FileInfo(p));
+                observableFilesList.add(new FileInfo(p));
             }
             filesTable.sort();
         } catch (IOException e) {
@@ -411,6 +411,8 @@ public class MainFormController implements Initializable {
 
         UserInfo ui = cbAvialibeUsersShares.getSelectionModel().getSelectedItem();
         client.askFilesList(ui);
+        filesOnServerTable.refresh();
+        filesTable.refresh();
         client.askUserList();
     }
 
@@ -511,6 +513,8 @@ public class MainFormController implements Initializable {
     public void onFilesServerTableClick(MouseEvent mouseEvent) {
         if (mouseEvent.getClickCount() == 2) {
             FileData fd = filesOnServerTable.getSelectionModel().getSelectedItem();
+            if (fd == null)
+                return;
             if (fd.isFolder() && !fd.isVirtual()) {
 
                 NetworkMessage nm = new NetworkMessage(Commands.GET_FILE_LIST);
@@ -540,14 +544,17 @@ public class MainFormController implements Initializable {
 
     @FXML
     public void addToCloud(ActionEvent actionEvent) {
-        Platform.runLater(() -> {
-            List<FileInfo> fi = filesTable.getSelectionModel().getSelectedItems();
+        if (!filesOnServerTable.getItems().get(0).isVirtual()) {
+            Platform.runLater(() -> {
+                List<FileInfo> fi = filesTable.getSelectionModel().getSelectedItems();
 
-            for (FileInfo f : fi) {
-                client.sendFile(f);
-                addEventToList("File " + f.getFileName() + " has been sent to the Cloud.");
-            }
-        });
+                for (FileInfo f : fi) {
+                    client.sendFile(f);
+                    addEventToList("File " + f.getFileName() + " has been sent to the Cloud.");
+                }
+            });
+        }
+
 
     }
 
@@ -573,19 +580,19 @@ public class MainFormController implements Initializable {
 
     @FXML
     public void downloadFromCloud() {
-        Platform.runLater(() -> {
-            List<FileData> fi = filesOnServerTable.getSelectionModel().getSelectedItems();
+        if (!filesOnServerTable.getItems().get(0).isVirtual()) {
+            Platform.runLater(() -> {
+                List<FileData> fi = filesOnServerTable.getSelectionModel().getSelectedItems();
 
-            for (FileData f : fi) {
-                addEventToList("File " + f.getFileName() + " downloading attempt.");
-                NetworkMessage nm = new NetworkMessage(Commands.FILE_DOWNLOAD);
-                nm.setExtraInfo(f.getFileName());
-                client.sendObject(nm);
+                for (FileData f : fi) {
+                    addEventToList("File " + f.getFileName() + " downloading attempt.");
+                    NetworkMessage nm = new NetworkMessage(Commands.FILE_DOWNLOAD);
+                    nm.setExtraInfo(f.getFileName());
+                    client.sendObject(nm);
 
-
-            }
-        });
-
+                }
+            });
+        }
     }
 
     @FXML
@@ -676,16 +683,29 @@ public class MainFormController implements Initializable {
 
     @FXML
     public void paintContextMenu(WindowEvent windowEvent) {
-        boolean isVirtual = filesOnServerTable.getSelectionModel().getSelectedItem().isVirtual();
-        String goUoSymbol = filesOnServerTable.getSelectionModel().getSelectedItem().getFileName();
-        if (isVirtual || goUoSymbol.equals("..")) {
-            miCreateFolder.setDisable(true);
-            miDownloadFromCloud.setDisable(true);
-            miShareTo.setDisable(true);
-            miUnShare.setDisable(true);
-            miDelete.setDisable(true);
-        } else {
+        FileData fd = filesOnServerTable.getSelectionModel().getSelectedItem();
+        if (fd == null)
+            return;
+        if (!filesOnServerTable.getItems().isEmpty()) {
+            boolean isVirtual = fd.isVirtual();
+            String goUoSymbol = fd.getFileName();
 
+            if (isVirtual || goUoSymbol.equals("..")) {
+                miCreateFolder.setDisable(true);
+                miDownloadFromCloud.setDisable(true);
+                miShareTo.setDisable(true);
+                miUnShare.setDisable(true);
+                miDelete.setDisable(true);
+            } else {
+
+                miCreateFolder.setDisable(false);
+                miDownloadFromCloud.setDisable(false);
+                miShareTo.setDisable(false);
+                miUnShare.setDisable(false);
+                miDelete.setDisable(false);
+            }
+
+        } else {
             miCreateFolder.setDisable(false);
             miDownloadFromCloud.setDisable(false);
             miShareTo.setDisable(false);
