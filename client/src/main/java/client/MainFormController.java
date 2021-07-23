@@ -349,6 +349,7 @@ public class MainFormController implements Initializable {
             client.setPathToSave(Paths.get(currentPath.getText()));
         }
 
+
     }
 
     @FXML
@@ -462,6 +463,7 @@ public class MainFormController implements Initializable {
                                         cbAvialibeUsersShares.getSelectionModel().selectFirst();
                                         filesOnServerTable.setItems(client.getObservableFileList());
                                         cbAvialibeUsersSharesAction(new ActionEvent());
+                                        client.setPathToSave(Paths.get(currentPath.getText()));
                                         break;
                                     }
                                     try {
