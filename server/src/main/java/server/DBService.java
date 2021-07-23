@@ -157,7 +157,7 @@ public class DBService {
         ResultSet resultSet = null;
         PreparedStatement query;
         try {
-            query = connection.prepareStatement("SELECT disctinct u.id, u.username FROM users_shared_folder uf\n" +
+            query = connection.prepareStatement("SELECT distinct u.id, u.username FROM users_shared_folder uf\n" +
                     "                        JOIN shared_folder_to sh_to\n" +
                     "                          ON sh_to.folderid = uf.id\n" +
                     "                        JOIN users u on u.id = sh_to.userid\n" +
