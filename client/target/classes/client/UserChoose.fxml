@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+
+<AnchorPane prefHeight="391.0" prefWidth="593.0" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="client.UserChooseController">
+   <children>
+      <Button  onAction="#onOK" fx:id="btOK" layoutX="553.0" layoutY="361.0" mnemonicParsing="false" prefHeight="25.0" prefWidth="76.0" text="OK" AnchorPane.bottomAnchor="10.0" AnchorPane.rightAnchor="10.0" />
+      <ListView fx:id="lwUsers" onMouseClicked="#onUsersClick" layoutX="14.0" layoutY="14.0" prefHeight="337.0" prefWidth="573.0" AnchorPane.bottomAnchor="45.0" AnchorPane.leftAnchor="5.0" AnchorPane.rightAnchor="5.0" AnchorPane.topAnchor="5.0" />
+   </children>
+</AnchorPane>

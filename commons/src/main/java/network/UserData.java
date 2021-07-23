@@ -1,28 +1,38 @@
-package objects;
+package network;
 
 import constants.Commands;
 
 public class UserData extends NetworkMessage{
 
-    private String userName;
-    private String userPassword;
 
-    public UserData(String userName, String userPassword) {
+    private String userLogin;
+    private String userPassword;
+    private int userID;
+
+    public int getUserID() {
+        return userID;
+    }
+
+    public void setUserID(int userID) {
+        this.userID = userID;
+    }
+
+    public UserData(String userLogin, String userPassword) {
         super(Commands.AUTHORISATION);
-        this.userName = userName;
+        this.userLogin = userLogin;
         this.userPassword = userPassword;
     }
 
     @Override
     public String toString() {
         return "UserData{" +
-                "userName='" + userName + '\'' +
+                "userName='" + userLogin + '\'' +
                 ", userPassword='" + userPassword + '\'' +
                 '}';
     }
 
-    public String getUserName() {
-        return userName;
+    public String getUserLogin() {
+        return userLogin;
     }
 
     public String getUserPassword() {
