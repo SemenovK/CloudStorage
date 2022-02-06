@@ -41,12 +41,11 @@ public class Server {
 
     private EventLoopGroup auth;
     private EventLoopGroup worker;
-    private ServerConnectionHandler serverConnectionHandler;
+    private Server serverHandler;
     private SocketChannel serverSocketChannel;
 
     public Server() {
         usersPlacement = new HashMap<>();
-        serverConnectionHandler = new ServerConnectionHandler(this);
         listOfProcessingFiles = new LinkedList<>();
 
         Thread t = new Thread(() -> {
@@ -79,6 +78,7 @@ public class Server {
         });
         t.setDaemon(true);
         t.start();
+        serverHandler = this;
 
     }
 
@@ -123,7 +123,7 @@ public class Server {
                                 ChannelPipeline channelPipeline = socketChannel.pipeline();
                                 channelPipeline.addLast(new ObjectDecoder(ClassResolvers.cacheDisabled(null)));
                                 channelPipeline.addLast(new ObjectEncoder());
-                                channelPipeline.addLast(serverConnectionHandler);
+                                channelPipeline.addLast(new ServerConnectionHandler(serverHandler));
 
                             }
                         });
